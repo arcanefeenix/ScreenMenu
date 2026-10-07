@@ -12,6 +12,7 @@ public class PreviewViewModelTests
         public CanvasSize Canvas { get; set; } = new(1920, 1080);
         public IReadOnlyList<CalibrationScreen> DrawnScreens { get; set; } = Array.Empty<CalibrationScreen>();
         public bool IsRunning { get; set; }
+        public bool IsBlackout { get; set; }
         public string CanvasDescription => "test canvas";
         public event Action? FrameChanged;
         public void Raise() => FrameChanged?.Invoke();
@@ -107,5 +108,19 @@ public class PreviewViewModelTests
         Assert.Contains("100%", vm.Status);
         vm.SelectedScale = vm.Scales.First(o => o.Scale == 3);
         Assert.Contains("300%", vm.Status);
+    }
+
+    [Fact]
+    public void The_badge_says_BLACKOUT_only_while_output_is_running_and_blacked_out()
+    {
+        var src = new FakeSource { IsRunning = true };
+        var vm = new PreviewViewModel(src);
+        Assert.Equal("LIVE", vm.LiveText);
+        src.IsBlackout = true;
+        src.Raise();
+        Assert.Equal("BLACKOUT", vm.LiveText);
+        src.IsRunning = false;
+        src.Raise();
+        Assert.Equal("STOPPED", vm.LiveText);
     }
 }

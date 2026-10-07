@@ -148,7 +148,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | UI-006 | Live preview using the shared renderer [15] | 9 | Implemented | Preview panel always visible beside the tabs, LIVE/STOPPED badge. It shows the very same picture buffer the LED output shows (one shared builder, `NormalFrameBuilder`, used by both). Automated: 7 view-model tests. Not yet looked at by a person in the running app |
 | UI-007 | Scaled preview and 100% pixel preview [15] | 9 | Implemented | Whole output fitted, or any one screen at 100% (actual pixels), 200%, 300%, 400%; enlargements are exact whole-pixel blocks, no smoothing. Automated: control rendered offscreen is pixel-identical to the frame at 100% (336x672 region, 0 differing pixels) and exact 3x3 blocks at 300%. Not yet looked at by a person in the running app |
 | UI-008 | Operator-visible warnings for overflow / missing assets / errors [14, 22] | 8 | Verified | Missing logo, font fallback and items that cannot fit are shown at the top of the editor and on the Menu Library card, in the preview, and in the output panel |
-| UI-009 | Keyboard shortcuts documented in the UI [26] | 10 | Not Started | |
+| UI-009 | Keyboard shortcuts documented in the UI [26] | 10 | Implemented | New Help tab lists Ctrl+Shift+B, Ctrl+Shift+I, Ctrl+Shift+F12 and Esc; the output panel also shows the main ones. Not yet seen by a person |
 | UI-010 | Startup notice banner when data was recovered or reset | 1 | Implemented | Banner bound to load result; shown path verified by unit-level store tests, UI display not yet exercised |
 | UI-011 | Hide/Show and Sold Out are one-press toggles with clear state (button text, red Sold Out button, HIDDEN / SOLD OUT / FEATURED tags, dimmed hidden rows); hidden items stay listed so they can be shown again | 8 | Verified | View-model tests and screenshot |
 | UI-012 | Categories can be added, renamed, hidden, reordered and deleted; deleting a category with items asks whether to delete the items too or keep them with no category [D-42] | 8 | Verified | View-model tests |
@@ -160,14 +160,14 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Operational controls (OPS)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| OPS-001 | Blackout: all output pure black, operator stays live, state preserved, toggle off restores [18] | 10 | Not Started | |
-| OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Not Started | |
-| OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Not Started | |
+| OPS-001 | Blackout: all output pure black, operator stays live, state preserved, toggle off restores [18] | 10 | Implemented | BLACKOUT button and toggle: the LED output is given pure black while the menus, screens, mode and page clock underneath are untouched; ending it restores them. 6 rule tests (BlackoutState). Live run: IsBlackout, preview going black, staying black through a mode change, and clearing on Stop all behaved correctly. The pixel capture of the real screen could not be used in this session (it returned one flat colour for every pixel), so "the wall is pure #000000" is not yet confirmed on hardware |
+| OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Implemented | Ctrl+Shift+B is bound in the operator window (works while the operator window has focus, like Identify). Not yet exercised with a real keypress |
+| OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Implemented | Red banner above the output controls, the BLACKOUT button turns red and reads "END BLACKOUT", the chip reads OUTPUT: BLACKOUT and the preview badge reads BLACKOUT. Not yet seen by a person |
 | OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Verified | Ctrl+Shift+I toggles Identify Screens (confirmed live: banner and chip changed, returned to Normal after 15 s) |
 | OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Verified | Global Ctrl+Shift+F12 stopped output with another app focused and when output covered the operator window |
-| OPS-006 | App always starts live, not blacked out [D-5] | 10 | Not Started | |
+| OPS-006 | App always starts live, not blacked out [D-5] | 10 | Verified | Blackout is never saved and is cleared whenever output stops: unit test, and live: after Stop while blacked out, IsBlackout was False and the next start showed the normal picture |
 | OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Verified | Output on the same display as the operator window: warning shown, then Ctrl+Shift+F12 recovered; also Stop button and Esc on the focused output window |
-| OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | In Progress | LIVE, STOPPED, NO DISPLAY done in Phase 3; BLACKOUT with Phase 10 |
+| OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | Implemented | LIVE, STOPPED, NO DISPLAY, CONFIRM DISPLAY and now BLACKOUT. Not yet seen by a person |
 
 ## Persistence (PERSIST)
 | ID | Requirement | Phase | Status | Evidence |

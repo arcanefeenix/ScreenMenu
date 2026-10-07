@@ -45,6 +45,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     private int _frameShown;
     private CanvasSize _canvas = StandInCanvas;
     private PixelBuffer? _blank;
+    private readonly BlackoutState _blackout = new();
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
         MenusViewModel menus, MenuRenderService render,
@@ -66,6 +67,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         {
             if (Enum.TryParse<OutputMode>(name, out var m)) SetMode(m);
         });
+        BlackoutCommand = new RelayCommand(ToggleBlackout, () => _blackout.CanToggle(_isRunning));
         ToggleIdentifyCommand = new RelayCommand(() =>
             SetMode(_mode == OutputMode.IdentifyScreens ? OutputMode.Normal : OutputMode.IdentifyScreens));
 
@@ -99,8 +101,9 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     public RelayCommand DismissMessageCommand { get; }
     public RelayCommand<string> SetModeCommand { get; }
     public RelayCommand ToggleIdentifyCommand { get; }
+    public RelayCommand BlackoutCommand { get; }
 
-    public bool IsRunning { get => _isRunning; private set => Set(ref _isRunning, value); }
+    public bool IsRunning { get => _isRunning; private set { if (Set(ref _isRunning, value)) BlackoutCommand.RaiseCanExecuteChanged(); } }
 
     /// <summary>Why output did not start or was stopped. Null when there is nothing to report.</summary>
     public string? Message
@@ -109,6 +112,38 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         private set { if (Set(ref _message, value)) OnPropertyChanged(nameof(HasMessage)); }
     }
     public bool HasMessage => !string.IsNullOrEmpty(_message);
+
+    // ---- blackout ---------------------------------------------------------------------------
+
+    public bool IsBlackout => _blackout.IsActive;
+
+    /// <summary>Big button text: says what pressing it does.</summary>
+    public string BlackoutButtonText => _blackout.IsActive ? "END BLACKOUT — SHOW MENUS AGAIN" : "BLACKOUT";
+
+    public string BlackoutBannerText => _blackout.IsActive
+        ? "BLACKOUT IS ON: the LED output is pure black. Your menus and settings are untouched. Press Ctrl+Shift+B or the button to bring the display back."
+        : "";
+
+    /// <summary>Switches the LED output to pure black and back. Only while output is running; never changes any menu or setting.</summary>
+    public void ToggleBlackout()
+    {
+        if (!_blackout.Toggle(_isRunning)) return;
+        _log.Info(_blackout.IsActive ? "Blackout ON" : "Blackout OFF");
+        BlackoutChanged();
+        // the picture underneath is untouched and still current; just change what the wall is given
+        _controller.ShowFrame(_blackout.Apply(LastFrame));
+        FrameChanged?.Invoke();
+    }
+
+    private void BlackoutChanged()
+    {
+        OnPropertyChanged(nameof(IsBlackout));
+        OnPropertyChanged(nameof(BlackoutButtonText));
+        OnPropertyChanged(nameof(BlackoutBannerText));
+        OnPropertyChanged(nameof(CanvasDescription));
+        _displays.SetBlackout(_blackout.IsActive);
+        BlackoutCommand.RaiseCanExecuteChanged();
+    }
 
     // ---- output mode ------------------------------------------------------------------------
 
@@ -143,7 +178,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     public PixelBuffer? LastFrame { get; private set; }
 
     /// <summary>The picture, never null: a black canvas of the right size when nothing is drawn. This is what the preview shows.</summary>
-    public PixelBuffer CurrentFrame => LastFrame ?? Blank(_canvas);
+    public PixelBuffer CurrentFrame => _blackout.IsActive ? Blank(_canvas) : LastFrame ?? Blank(_canvas);
 
     /// <summary>Size of the output canvas the picture is built for.</summary>
     public CanvasSize Canvas => _canvas;
@@ -160,6 +195,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         get
         {
             var info = _screens.Canvas;
+            if (_isRunning && _blackout.IsActive) return $"BLACKOUT — the LED output is pure black (canvas {_canvas})";
             if (_isRunning) return $"LIVE on the LED output — canvas {_canvas}";
             return info.Source switch
             {
@@ -282,7 +318,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         _canvas = canvas;
         LastFrame = frame;
         DrawnScreens = drawn;
-        if (_isRunning) _controller.ShowFrame(frame);          // null = pure black
+        if (_isRunning) _controller.ShowFrame(_blackout.Apply(frame));          // null = pure black
         OnPropertyChanged(nameof(CanvasDescription));
         FrameChanged?.Invoke();
     }
@@ -367,6 +403,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         _displays.SetOutputRunning(running);
         if (!running)
         {
+            if (_blackout.OutputStopped()) _log.Info("Output stopped; blackout cleared.");
             _hotKey.Unregister();
             _identifyTimer.Stop();
             // A stopped output always returns to Normal, so a test pattern can never reappear by surprise at the next start.
@@ -376,6 +413,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         }
         if (!running && reason != null && reason.StartsWith("The output window was closed"))
             Message = reason;
+        BlackoutChanged();
         RaiseModeChanged();
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();

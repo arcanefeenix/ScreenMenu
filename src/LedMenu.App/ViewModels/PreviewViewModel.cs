@@ -12,6 +12,7 @@ public interface IFrameSource
     CanvasSize Canvas { get; }
     IReadOnlyList<CalibrationScreen> DrawnScreens { get; }
     bool IsRunning { get; }
+    bool IsBlackout => false;
     string CanvasDescription { get; }
     event Action? FrameChanged;
 }
@@ -116,7 +117,7 @@ public sealed class PreviewViewModel : ObservableObject
     public double Scale => _scale.Scale;
 
     public bool IsLive => _source.IsRunning;
-    public string LiveText => _source.IsRunning ? "LIVE" : "STOPPED";
+    public string LiveText => _source.IsRunning ? (_source.IsBlackout ? "BLACKOUT" : "LIVE") : "STOPPED";
     public string CanvasDescription => _source.CanvasDescription;
 
     public string Status

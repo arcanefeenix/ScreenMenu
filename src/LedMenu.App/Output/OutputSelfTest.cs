@@ -90,6 +90,51 @@ public static class OutputSelfTest
                     foreach (var smp in samples) Line("     " + smp);
                     if (!string.IsNullOrEmpty(output.SkippedText)) Line("     " + output.SkippedText);
                 }
+                // ---- blackout: pure black on the real screen over a busy picture, and the picture comes back exactly ----
+                Line("");
+                Line("=== Blackout ===");
+                output.SetMode(LedMenu.Core.Calibration.OutputMode.OutputCanvasCalibration);
+                for (var i = 0; i < 100 && !output.FrameUpToDate; i++) await Task.Delay(100);
+                await Task.Delay(1500);
+                var busy = output.LastFrame ?? new LedMenu.Core.Calibration.PixelBuffer(display.Width, display.Height);
+                var (m0, _) = CompareToFrame(display.X, display.Y, busy);
+                Line($"Before blackout (canvas calibration pattern): {m0} mismatching pixels");
+
+                output.ToggleBlackout();
+                await Task.Delay(1500);
+                var black = new LedMenu.Core.Calibration.PixelBuffer(display.Width, display.Height);
+                var (m1, s1) = CompareToFrame(display.X, display.Y, black);
+                Line($"During blackout: {m1} pixels not pure #000000 out of {(long)display.Width * display.Height}; chip=\"{_chipOf(output)}\"; IsBlackout={output.IsBlackout}; preview frame is black: {IsAllBlack(output.CurrentFrame)}");
+                foreach (var smp in s1) Line("     " + smp);
+
+                // the picture underneath keeps being the current one while blacked out; changing mode must not lift blackout
+                output.SetMode(LedMenu.Core.Calibration.OutputMode.IdentifyScreens);
+                for (var i = 0; i < 100 && !output.FrameUpToDate; i++) await Task.Delay(100);
+                await Task.Delay(1500);
+                var (m1b, _) = CompareToFrame(display.X, display.Y, black);
+                Line($"Blackout still pure black after switching to Identify Screens underneath: {m1b} mismatching pixels");
+
+                output.SetMode(LedMenu.Core.Calibration.OutputMode.OutputCanvasCalibration);
+                for (var i = 0; i < 100 && !output.FrameUpToDate; i++) await Task.Delay(100);
+                output.ToggleBlackout();
+                await Task.Delay(1500);
+                var (m2, s2) = CompareToFrame(display.X, display.Y, busy);
+                Line($"After ending blackout: {m2} mismatching pixels against the pattern that was there before; IsBlackout={output.IsBlackout}");
+                foreach (var smp in s2) Line("     " + smp);
+
+                // stopping while blacked out must leave nothing waiting for the next start
+                output.ToggleBlackout();
+                await Task.Delay(500);
+                output.Stop("self-test");
+                await Task.Delay(500);
+                Line($"After Stop while blacked out: IsBlackout={output.IsBlackout} (expected False)");
+                output.Start();
+                await Task.Delay(1500);
+                if (controller.IsRunning)
+                {
+                    var (m3, _) = CompareToFrame(display.X, display.Y, output.LastFrame ?? new LedMenu.Core.Calibration.PixelBuffer(display.Width, display.Height));
+                    Line($"Next start after a blackout shows the normal picture: {m3} mismatching pixels; IsBlackout={output.IsBlackout}");
+                }
                 output.Stop("self-test");
                 await Task.Delay(500);
                 Line($"After Stop the mode is {output.Mode} (expected Normal); running={controller.IsRunning}");
@@ -129,6 +174,15 @@ public static class OutputSelfTest
             }
         }
         return (mismatches, samples);
+    }
+
+    private static string _chipOf(OutputViewModel o) => o.IsBlackout ? "OUTPUT: BLACKOUT" : "(not blacked out)";
+
+    private static bool IsAllBlack(LedMenu.Core.Calibration.PixelBuffer f)
+    {
+        for (var i = 0; i < f.Data.Length; i += 4)
+            if (f.Data[i] != 0 || f.Data[i + 1] != 0 || f.Data[i + 2] != 0) return false;
+        return true;
     }
 
     private static string Hash(string file) =>

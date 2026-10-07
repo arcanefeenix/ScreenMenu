@@ -49,6 +49,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     private string? _operatorNote;
     private bool _outputRunning;
     private string? _testLabel;
+    private bool _blackout;
 
     public DisplaysViewModel(IDisplaySource source, AppSettings settings, Action saveSettings, IAppLog log,
         Func<IReadOnlyList<string>, string, bool> confirm, Func<long> operatorWindowMonitor,
@@ -114,6 +115,14 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     {
         if (_testLabel == label) return;
         _testLabel = label;
+        UpdateStatus();
+    }
+
+    /// <summary>Blackout is on: the status chip says so, whatever else is going on.</summary>
+    public void SetBlackout(bool on)
+    {
+        if (_blackout == on) return;
+        _blackout = on;
         UpdateStatus();
     }
 
@@ -209,7 +218,8 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
                               $"(\"{_output.Display!.FriendlyName}\", {_output.Display.Resolution}). Confirm it is the LED display before output can be used.";
                 break;
             default:
-                OutputChip = _outputRunning ? (_testLabel == null ? "OUTPUT: LIVE" : "OUTPUT: LIVE — TEST: " + _testLabel) : "OUTPUT: STOPPED";
+                OutputChip = _outputRunning && _blackout ? "OUTPUT: BLACKOUT"
+                    : _outputRunning ? (_testLabel == null ? "OUTPUT: LIVE" : "OUTPUT: LIVE — TEST: " + _testLabel) : "OUTPUT: STOPPED";
                 OutputAlert = null;
                 break;
         }

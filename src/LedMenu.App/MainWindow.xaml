@@ -8,6 +8,7 @@
     <Window.InputBindings>
         <KeyBinding Key="F12" Modifiers="Ctrl+Shift" Command="{Binding Output.StopCommand}"/>
         <KeyBinding Key="I" Modifiers="Ctrl+Shift" Command="{Binding Output.ToggleIdentifyCommand}"/>
+        <KeyBinding Key="B" Modifiers="Ctrl+Shift" Command="{Binding Output.BlackoutCommand}"/>
     </Window.InputBindings>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -68,11 +69,28 @@
                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                             <Button Content="Start Output" Padding="18,8" FontWeight="Bold" Margin="0,0,8,0"
                                     Command="{Binding StartCommand}"/>
-                            <Button Content="Stop Output" Padding="18,8" FontWeight="Bold"
+                            <Button Content="Stop Output" Padding="18,8" FontWeight="Bold" Margin="0,0,24,0"
                                     Command="{Binding StopCommand}"/>
+                            <Button Padding="18,8" FontWeight="Bold" Command="{Binding BlackoutCommand}" ToolTip="Ctrl+Shift+B"
+                                    AutomationProperties.AutomationId="BlackoutButton" Content="{Binding BlackoutButtonText}">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="#FFB23A3A"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsBlackout}" Value="True">
+                                                <Setter Property="Background" Value="#FFC62828"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Foreground" Value="#FF777777"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
                         <TextBlock Style="{StaticResource Dim}" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                   Text="Stop output at any time: Ctrl+Shift+F12"/>
+                                   Text="Stop output at any time: Ctrl+Shift+F12     Blackout: Ctrl+Shift+B     All shortcuts: Help tab"/>
                     </DockPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <TextBlock Text="Output shows:" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource Dim}"/>
@@ -86,6 +104,10 @@
                         <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Output Canvas Calibration" GroupName="OutMode" Padding="12,5"
                                      IsChecked="{Binding IsCanvasCalibrationMode, Mode=OneWay}" Command="{Binding SetModeCommand}" CommandParameter="OutputCanvasCalibration"/>
                     </StackPanel>
+                    <Border Background="#FFC62828" Padding="12,10" Margin="0,10,0,0"
+                            Visibility="{Binding IsBlackout, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding BlackoutBannerText}" TextWrapping="Wrap" FontWeight="Bold" FontSize="15" Foreground="White"/>
+                    </Border>
                     <Border Background="#FFB000B0" Padding="12,8" Margin="0,10,0,0"
                             Visibility="{Binding IsTestMode, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="{Binding ModeBannerText}" TextWrapping="Wrap" FontWeight="Bold" Foreground="White"/>
@@ -548,6 +570,49 @@
                         </ItemsControl>
                     </StackPanel>
                 </ScrollViewer>
+            </TabItem>
+            <TabItem Header="Help">
+                <StackPanel Margin="12">
+                    <TextBlock Text="KEYBOARD SHORTCUTS" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                    <Border Background="#FF262626" Padding="12,8" Margin="0,0,0,6">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Width="150" Text="Ctrl+Shift+B" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="Blackout" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Turns the LED output pure black, and back. Menus and settings are untouched. Works while output is running."/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Background="#FF262626" Padding="12,8" Margin="0,0,0,6">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Width="150" Text="Ctrl+Shift+I" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="Identify Screens" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Shows each screen's number and outline on the LED output for 15 seconds, then returns to Normal Output."/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Background="#FF262626" Padding="12,8" Margin="0,0,0,6">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Width="150" Text="Ctrl+Shift+F12" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="Stop Output (emergency recovery)" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Closes the LED output window without closing the program. Works even when another program has focus or the output covers this window."/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Background="#FF262626" Padding="12,8" Margin="0,0,0,6">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Width="150" Text="Esc" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                            <StackPanel>
+                                <TextBlock Text="Stop Output" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Only when the LED output window itself has focus. The output never takes focus on its own."/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Text="Nothing here deletes anything. Blackout only works while output is running."/>
+                </StackPanel>
             </TabItem>
         </TabControl>
             <Border Grid.Column="1" Width="436" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A" BorderThickness="1" Padding="10"

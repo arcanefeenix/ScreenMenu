@@ -80,8 +80,15 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** a screenshot of the running window could not be captured in this session, so the panel layout was not eyeballed. Human check: start the app, open Screens, add a 336x672 screen, pick it in the preview and confirm 100%.
 **Not in this phase:** blackout and shortcut documentation (Phase 10).
 
-## Phases 10–13
-As in the spec (sections 31 and 32): blackout and shortcuts, multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
+## Phase 10 — Blackout and Operational Controls (complete)
+**Scope:** Blackout (button, Ctrl+Shift+B, banner, chip, preview badge), Help tab documenting all shortcuts, output status chip BLACKOUT.
+**Requirements:** OPS-006 Verified; OPS-001, 002, 003, 008 and UI-009 Implemented (hardware and human checks pending).
+**Tests:** 7 new automated tests (6 blackout rules in Core, 1 preview badge). Full suite 511 passing; build with warnings as errors clean. The live self-test gained a blackout section.
+**Not verified:** the real-screen pixel capture returned one flat colour for every pixel in this session (the same failure that blanked window screenshots), so the live pixel comparisons, old and new, could not be used. Human check: start output on the LED, press Ctrl+Shift+B (with the operator window focused) and confirm the wall goes pure black and returns; confirm the red banner and chip; stop while blacked out and start again.
+**Not in this phase:** nothing from the spec for Phase 10 remains open apart from the human checks.
+
+## Phases 11–13
+As in the spec (sections 31 and 32): multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.
