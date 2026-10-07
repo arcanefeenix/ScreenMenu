@@ -39,3 +39,21 @@ A plain levels expansion `(v-16)*255/219` applied to the grabbed pixels brings t
 ## Not tested here
 
 Long soak (hours), memory growth, many videos in sequence, behavior with the real VP2 wall, HEVC on a machine without the codec, and videos with unusual dimensions or variable frame rate.
+
+## Addendum: the user's real clips (2026-10-07)
+
+Three clips from the user's downloads, copied to a temp folder for the test (originals untouched): "Fall Drinks", "Black and Orange Elegant Whiskey Bar Event Promotional Ad", and "Fun Gold Friday Beer Periodic Element Pun".
+
+| | Fall Drinks | Whiskey Bar Ad | Gold Friday Beer |
+|---|---|---|---|
+| Format (ffprobe) | H.264 High, 168x672, 30 fps, yuv420p, tagged BT.709 limited range, no audio | same | same |
+| Real length | 38.5 s (1155 frames) | 6.03 s | 12.93 s (388 frames) |
+| Windows reports | 38.0 s | 6.0 s | 12.0 s |
+| Opens | 335 ms | 352 ms | 349 ms |
+| Smoothness | 30/s frames delivered; only 144 of its 1155 frames differ from the one before, so it is a low-motion clip (the 13.6 "distinct pictures per second" the harness counted is the clip, not the decoder) | 30.0/s, all distinct | 30.0/s, all distinct |
+| Grab cost at 168x672 | median 2.4 ms | 2.5 ms | 2.1 ms |
+| CPU (grabbing every frame) | 23% of a core | 26% | 18% |
+
+- **Colour on real content:** the Whiskey Bar clip compared with ffmpeg's decode of the same frame: mean difference 11.1/255 as Windows delivers it, **1.2/255 after the levels expansion** (1.7% of channel values differ by more than 6, all at colour edges). The expansion is confirmed on real material.
+- **Duration finding:** Windows reports lengths rounded down to whole seconds (12.93 s shows as 12.0 s). Playback itself runs to the true end (MediaEnded fired ~1 s later than the reported length would imply). So: never use the reported length for timing or for "last second" logic; use the end-of-media event. For display, the import should read the real length from the MP4 header itself (a small reader), or show whole seconds.
+- Loop restart is still about 0.3 s, as before.
