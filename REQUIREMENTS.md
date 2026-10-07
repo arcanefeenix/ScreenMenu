@@ -200,8 +200,8 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
 | PKG-001 | Self-contained release build, runnable from a folder/desktop [D-5] | 13 | Verified | tools\publish.ps1 produces dist\LedMenuControl (win-x64, self-contained, 161 MB, 472 files) and a 67 MB zip, and refuses to finish if the runtime, exe, fonts or documents are missing. The published copy was started from a folder with spaces in its name, with no dotnet on PATH and no DOTNET_ROOT, and a fresh data folder: it stayed up and responsive, logged startup, found the bundled Lato font, created its data and logged no errors or warnings |
-| PKG-002 | Clean-machine startup test [31] | 13 | Implemented | Automated stand-in passed (see PKG-001). Still needs a real clean machine: copy the zip to a PC that has never had .NET or this program and follow READ_ME_FIRST.txt |
-| PKG-003 | Operator documentation [31] | 13 | Implemented | OPERATOR_GUIDE.html (setup, everyday use, running the wall, blackout, shortcuts, troubleshooting table, files/backup/moving PCs, wall notes) and READ_ME_FIRST.txt ship in the folder. Needs the user to read it for accuracy and clarity |
+| PKG-002 | Clean-machine startup test [31] | 13 | Verified | Automated stand-in passed (see PKG-001) and the user ran the package on a real clean machine: passed (2026-10-07) |
+| PKG-003 | Operator documentation [31] | 13 | Verified | OPERATOR_GUIDE.html and READ_ME_FIRST.txt ship in the folder; approved by the user (2026-10-07) |
 
 
 ## Backlog: Video Screen / Playlist (VID) — post-menu, NOT scheduled, NOT started
