@@ -579,7 +579,7 @@
                             <TextBlock DockPanel.Dock="Left" Width="150" Text="Ctrl+Shift+B" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                             <StackPanel>
                                 <TextBlock Text="Blackout" FontWeight="SemiBold"/>
-                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Turns the LED output pure black, and back. Menus and settings are untouched. Works while output is running."/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Turns the LED output pure black, and back. Menus and settings are untouched. Works from anywhere while output is running, even when another program has focus."/>
                             </StackPanel>
                         </DockPanel>
                     </Border>

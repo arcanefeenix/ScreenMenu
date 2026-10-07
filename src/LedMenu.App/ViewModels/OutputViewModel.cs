@@ -93,6 +93,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         _controller.StateChanged += OnStateChanged;
         _controller.StopRequested += () => Stop("Escape pressed on the output window");
         _hotKey.Pressed += () => Stop("Ctrl+Shift+F12");
+        _hotKey.BlackoutPressed += ToggleBlackout;
         _displays.Refreshed += OnDisplaysRefreshed;
     }
 
