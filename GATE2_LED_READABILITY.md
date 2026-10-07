@@ -2,7 +2,7 @@
 
 > **Extension:** the intended menu screen may be 168 × 672 (one panel column). See `GATE2_168x672_TEST.md` for testing the unchanged template on exactly that region.
 
-> **Status: WAITING for your physical LED test.** Nothing about the template's readability is marked Verified until you approve it.
+> **Status: PASSED (user approved the layout as tested on the LED wall).** See D-41. Kept for re-testing other walls or menus.
 
 The first template (`portrait-basic`) is built for the 2×2 panel screen, **336 × 672** LED pixels. The desktop preview helps you check content, but it **cannot** tell you whether the type is readable on the wall. Please judge from the real LEDs, at your real viewing distance.
 

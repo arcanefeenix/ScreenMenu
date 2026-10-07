@@ -259,6 +259,14 @@ public static class MenuLayoutEngine
         var inline = reserve > 0 && reserve <= contentW * InlinePriceMaxShare;
         var nameAreaW = inline ? contentW - reserve - NameGap : contentW;
 
+        // never cut a word in half just to keep the price beside the name: if the name's longest word does not fit
+        // in what is left beside the price, the price moves to its own row and the name gets the full width
+        if (inline && LongestWordWidth(item.Name ?? "", nameStyle, m) > nameAreaW)
+        {
+            inline = false;
+            nameAreaW = contentW;
+        }
+
         var nameLines = Wrap(item.Name ?? "", nameStyle, nameAreaW, m);
         var nameH = nameLines.Count * nameLH;
 
@@ -348,6 +356,10 @@ public static class MenuLayoutEngine
     }
 
     // ---- helpers ---------------------------------------------------------------------------
+
+    private static double LongestWordWidth(string text, TextStyle style, ITextMeasurer m) =>
+        text.Split(new[] { ' ', (char)10, (char)13 }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => m.Width(w, style)).DefaultIfEmpty(0).Max();
 
     private static IReadOnlyList<string> Wrap(string text, TextStyle style, double maxWidth, ITextMeasurer m) =>
         TextWrapping.Wrap(text, maxWidth, s => m.Width(s, style));

@@ -12,7 +12,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 4 Screen Model | **Complete** (review requested) | |
 | 5 Calibration | **Complete** | **Gate 1 PASSED (user-verified)**: VP2 top-left anchored, 1:1, 336x672 Screen at 0,0 verified |
 | 6 Menu Data (incl. asset import for logos) | **Complete** (review requested) | |
-| 7 Menu Renderer (template, pagination, fonts, logo) | **Built and tested; STOPPED at Gate 2** | **Gate 2: LED readability (waiting for the physical test)** |
+| 7 Menu Renderer (template, pagination, fonts, logo) | **Complete** | **Gate 2 PASSED (user approved the layout as tested on the LED wall, including 168x672)** |
 | 8 Operator Menu UI | Not started | |
 | 9 Live Preview | Not started | |
 | 10 Blackout and Operational Controls | Not started | |
@@ -60,7 +60,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Tests:** 84 new unit tests (ordering, editor operations, view rules, validator, library, assignment, asset rules, file store, asset store) plus live UI and corruption tests.
 **Not done in this phase:** editing categories and items in the UI, autosave debounce (Phase 8); schema migration with a pre-migration backup (first needed when the schema changes); drawing a menu or logo (Phase 7).
 
-## Phase 7 — Menu Renderer (built; stopped at Gate 2)
+## Phase 7 — Menu Renderer (complete; Gate 2 passed)
 **Scope:** the first 336x672 portrait template, layout and pagination from measured text, bundled font, logo handling, sold-out and featured treatments, one renderer for output and preview, operator problem reporting, rotation of pages, samples for the LED test.
 **Requirements:** RENDER-001, 002, 007, 009..013, 016..018, 020..023, MENU-005, MENU-008, OUT-005 Verified; RENDER-005, 006, 008, 014, 019 Implemented (look and readability wait for Gate 2); RENDER-015 In Progress; UI-006, UI-007 In Progress.
 **Tests:** 125 new automated tests: 78 in Core (text wrapping, page clock, typography, layout, logo box, sold out, featured, long content, pagination boundaries and orphan sweeps, overflow) and 47 with the real font and pixel read-back in the new Rendering.Tests project. Live: the real monitor matched the renderer's PNGs with 0 differing pixels on four captures, pages rotated on the 10 s schedule, and a deleted logo file produced the warning and reclaimed space.

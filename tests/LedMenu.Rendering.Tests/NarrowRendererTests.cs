@@ -246,15 +246,28 @@ public class NarrowRendererTests
         Assert.True(narrow > 80);
     });
 
-    // Known defect, found by the 168-wide test, deliberately NOT fixed yet (the existing template was to be tested unchanged):
-    // when the price sits beside the name and the name's longest word does not fit in what is left, the word is cut in the
-    // middle (for example "Lemona" / "de") instead of moving the price to its own line. Un-skip after the narrow adaptation.
-    [Fact(Skip = "Known narrow-screen defect: a long word is split mid-word beside an inline price. Fix proposed, awaiting approval.")]
+    // Found by the first 168-wide test and fixed afterwards: a long word beside an inline price used to be cut in the middle
+    // ("Lemona" / "de"); now the price moves to its own row first.
+    [Fact]
     public void Words_in_item_names_are_never_cut_in_the_middle_when_the_price_could_move() => Sta.Run(() =>
     {
         var r = Narrow(SampleMenus.DenseMenu());
         var names = r.Layout.Pages.SelectMany(R.Texts).Where(t => t.Color == NameColor && t.Style == ItemName).Select(t => t.Text).ToList();
+        Assert.Contains("Lemonade", names);
         Assert.DoesNotContain("Lemona", names);
         Assert.DoesNotContain("de", names);
+
+        // every sample: any word that fits the full line is drawn whole
+        foreach (var info in SampleMenus.All)
+        {
+            var menu = info.Create();
+            var drawn = Narrow(menu).Layout.Pages.SelectMany(R.Texts)
+                .Where(t => (t.Color == NameColor || t.Color == FeaturedNameColor || t.Color == SoldOutNameColor) && (t.Style == ItemName)).Select(t => t.Text).ToList();
+            var measurer = new WpfTextMeasurer(R.Fonts.Resolve(null).Family);
+            foreach (var item in menu.Items)
+                foreach (var word in item.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                    if (measurer.Width(word, ItemName) <= 152)
+                        Assert.Contains(drawn, line => line.Split(' ').Contains(word));
+        }
     });
 }

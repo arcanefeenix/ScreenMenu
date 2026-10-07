@@ -1,6 +1,6 @@
 # Gate 2 extension — menu on a 168 × 672 screen (one panel wide, two high)
 
-> **Status: WAITING for your physical LED test.** This extends Gate 2. Nothing about 168×672 readability is marked Verified until you report.
+> **Status: PASSED (user approved the unchanged template as tested on 168×672).** See D-41. The adaptation proposed in section 5 was not adopted; only the mid-word fix was made.
 
 The existing `portrait-basic` template has **not been redesigned** for this test. It renders natively at 168×672 using the same layout and renderer as 336×672: the type sizes are exactly the same (title 28, category bar 18, item name 20, price 20, description 14, etc.); the only thing that changes is the width the text has to wrap into (152 pixels instead of 320).
 

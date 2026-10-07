@@ -252,4 +252,37 @@ public class NarrowLayoutTests
         Assert.True(narrow < wide);
         Assert.True(narrow > 50, $"only {narrow} words fit");
     }
+
+    [Fact]
+    public void A_long_word_beside_the_price_moves_the_price_to_its_own_row_instead_of_being_cut()
+    {
+        var m = LayoutHelpers.OneCategory(1, price: "$9");
+        m.Items[0].Name = "Lemonade";                 // 8 chars x 10 px = 80 px; only ~ 70 px is left beside a "$9" price here
+        m.Items[0].Name = "Strawberryade";            // 13 chars x 10 px = 130 px: fits the 152 px line, not the space beside the price
+        var r = Run(m);
+        var nameLines = LayoutHelpers.Texts(r.Pages[0]).Where(LayoutHelpers.IsNameText).Select(t => t.Text).ToList();
+        Assert.Equal(new[] { "Strawberryade" }, nameLines);                  // one whole word
+        var price = LayoutHelpers.Texts(r.Pages[0]).Single(LayoutHelpers.IsPriceText);
+        var name = LayoutHelpers.Texts(r.Pages[0]).Single(LayoutHelpers.IsNameText);
+        Assert.True(price.Y > name.Y);                                         // the price dropped to its own row
+    }
+
+    [Fact]
+    public void When_the_whole_word_fits_beside_the_price_the_price_stays_inline()
+    {
+        var m = LayoutHelpers.OneCategory(1, price: "$9");
+        m.Items[0].Name = "Fries";
+        var r = Run(m);
+        Assert.Equal(LayoutHelpers.Texts(r.Pages[0]).Single(LayoutHelpers.IsNameText).Y,
+                     LayoutHelpers.Texts(r.Pages[0]).Single(LayoutHelpers.IsPriceText).Y);
+    }
+
+    [Fact]
+    public void A_word_wider_than_even_the_full_line_is_still_split_because_there_is_no_alternative()
+    {
+        var m = LayoutHelpers.OneCategory(1, price: "$9");
+        m.Items[0].Name = "Supercalifragilisticexpialidocious";
+        var drawn = string.Concat(LayoutHelpers.Texts(Run(m).Pages[0]).Where(LayoutHelpers.IsNameText).Select(t => t.Text));
+        Assert.Equal("Supercalifragilisticexpialidocious", drawn);
+    }
 }
