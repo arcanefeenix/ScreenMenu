@@ -11,9 +11,9 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | FOUND-001 | Native Windows desktop app: C# / .NET / WPF [4] | 1 | Verified | Solution builds on .NET 8 SDK, 0 warnings (-warnaserror); app launches |
 | FOUND-002 | Fully offline; no cloud, web server, Firebase or network dependency [4] | 1 | Verified | No network packages referenced; only test packages beyond the SDK |
 | FOUND-003 | Minimal external dependencies [4] | 1 | Verified | App projects have zero NuGet packages |
-| FOUND-004 | Clean separation: Models, Persistence, Menu mgmt, Screen/output mgmt, Rendering, UI/VMs, Display discovery [28] | 1 | In Progress | Core / Persistence / Rendering / App projects created; remaining areas arrive with their phases |
+| FOUND-004 | Clean separation: Models, Persistence, Menu mgmt, Screen/output mgmt, Rendering, UI/VMs, Display discovery [28] | 1 | Verified | Core (pure logic), Persistence, Rendering and App (view-models, output, controls) projects plus four test projects; Core and Persistence reference no UI. All areas now exist and are covered by 590 tests |
 | FOUND-005 | Automated test projects for non-UI logic [29] | 1 | Verified | Core.Tests (8) and Persistence.Tests (12) pass |
-| FOUND-006 | Self-contained publish, no installer [D-5] | 13 | Not Started | |
+| FOUND-006 | Self-contained publish, no installer [D-5] | 13 | Verified | See PKG-001: self-contained folder, no installer, clean-machine test passed |
 | FOUND-007 | Recover previous state after restart [4] | 6 | Verified | Displays, screens, assignments and menus are restored after restart (live) |
 
 ## Display discovery (DISP)
@@ -58,7 +58,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | SCR-006 | Validation: negative coordinates, invalid size, outside canvas [7] | 4 | Verified | Unit tests (non-positive, negative, outside canvas incl. 1-pixel overshoot and int overflow); live flags shown; invalid screens are kept, not corrected |
 | SCR-007 | Overlap detection warns but does not forbid [7] | 4 | Verified | Unit tests (overlap by area, edge-touching is fine, disabled ignored); live warnings on both screens and cleared by disabling one |
 | SCR-008 | Panel resolution (168×336) not hard-coded [2] | 4 | Verified | Tests use 1x1, 1176x336, 620x1080, 920x1080 and 336x672 screens; 336x672 appears only as the Add default and a convenience button |
-| SCR-009 | Layouts saveable as presets; menus independent of layouts [9] | 4 | In Progress | Layout is a named, versioned object separate from menus and from the selected display. Saving several presets is not built yet |
+| SCR-009 | Layouts saveable as presets; menus independent of layouts [9] | 4 | In Progress | DEFERRED, not scheduled: a layout is a named, versioned object separate from menus and from the display, but saving several named presets was never built; one layout is kept. Add only if wanted |
 | SCR-010 | Output / Screen / Menu remain separate concepts [3] | 4 | Verified | Screens live in screens.json; editing, moving and removing screens left settings.json (selected displays) byte-identical |
 | SCR-011 | Multiple independent screens, each with its own menu, on one canvas [2, 31] | 11 | Verified | Nine automated tests (2 to 4 screens through the real renderer) and the user confirmed two screens working on the LED (2026-10-07) |
 | SCR-012 | A screen outside the canvas, or made invalid by a smaller output, is flagged and left exactly as entered (never clipped or resized) [D-17] | 4 | Verified | Unit tests; live: display missing with last-known 1920x1080 flagged a 2976-wide edge and screens.json stayed byte-identical |
@@ -177,7 +177,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PERSIST-003 | Keep backups of last known-good files (last 10) [19, D-1] | 1 | Verified | Backup creation and pruning tests |
 | PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
 | PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | Verified | Settings, display choices, screens, screen-to-menu assignments, menus, categories, items and theme all persist and restore (unit tests and live restarts) |
-| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | Every file carries a schema version and a newer file is refused and kept. Backing up before a migration is not built because no migration exists yet; it will be added with the first schema change |
+| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | OPEN BY DESIGN: every file carries a schema version and a newer file is refused and kept. Backup before a migration will be added with the first schema change; no migration exists yet |
 | PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Verified | Quick actions save at once; typed text saves once after a 500 ms pause (burst of 6 keystrokes = 1 write); focus leaving a box, switching menu or tab, and program exit flush anything waiting. 9 Core and 10 view-model tests; live: price stayed old on disk while typing and became the new value after the pause; typed text then window closed at once was saved |
 | PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Verified | Imported images live in %APPDATA%\LedMenu\assets; only a plain file name is stored in a menu; names that could point elsewhere are refused |
 
