@@ -195,8 +195,10 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,10,0,0">
                     <StackPanel DataContext="{Binding Screens}">
                         <DockPanel Margin="0,0,0,8">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Margin="0"
-                                    Content="Add Screen (336×672)" Command="{Binding AddCommand}"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource ActionButton}" Content="Add Screen (168×672)" Command="{Binding AddNarrowCommand}"/>
+                                <Button Style="{StaticResource ActionButton}" Margin="0" Content="Add Screen (336×672)" Command="{Binding AddCommand}"/>
+                            </StackPanel>
                             <TextBlock Foreground="#FFEDEDED" Text="SCREENS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
 
@@ -241,6 +243,7 @@
                                                 <DockPanel Margin="0,0,0,8">
                                                     <Button DockPanel.Dock="Right" Content="Remove" Padding="10,3" Margin="8,0,0,0" Command="{Binding RemoveCommand}"/>
                                                     <Button DockPanel.Dock="Right" Content="Set 336×672" Padding="10,3" Margin="8,0,0,0" Command="{Binding StandardSizeCommand}"/>
+                                                    <Button DockPanel.Dock="Right" Content="Set 168×672" Padding="10,3" Margin="8,0,0,0" Command="{Binding NarrowSizeCommand}"/>
                                                     <CheckBox DockPanel.Dock="Right" Content="Enabled" IsChecked="{Binding Enabled}" VerticalAlignment="Center"
                                                               Foreground="#FFEDEDED" Margin="8,0,0,0"/>
                                                     <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontSize="16" Padding="4,2" KeyDown="CommitOnEnter"/>

@@ -132,6 +132,9 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | RENDER-021 | Problems (missing/unreadable logo, font or template fallback, item overflow) are shown to the operator on the menu card, the preview and the output panel | 7 | Verified | Live: warning appeared on all three |
 | RENDER-022 | Rendering is deterministic: the same menu gives byte-identical pages | 7 | Verified | Tests |
 | RENDER-023 | Menu pages are cached by content signature and re-rendered on any change, including logo file changes | 7 | Verified | Live logo delete changed the wall within one page period |
+| RENDER-024 | The renderer works natively at any screen size, including 168x672 (one panel wide): the layout uses the screen's own width, typography is never scaled to fit, and a menu is never a scaled copy of another size [D-39] | 7 | Verified | 22 Core and 15 Rendering tests at 168x672 (plus 1 deliberately skipped test that documents the known mid-word defect); real monitor: two 168-wide screens side by side matched the renderer's PNGs with 0 differing pixels through a full 4-page rotation. Physical LED readability of this size is part of the Gate 2 extension (RENDER-025) |
+| RENDER-025 | **Gate 2 extension: readability of the unchanged template on a 168x672 screen (leftmost 1x2 panel column)** [D-39] | 7 | In Progress | Built and documented in GATE2_168x672_TEST.md; waiting for the physical LED test |
+| RENDER-026 | Narrow-screen adaptation (never cut a word, price on the description row, compact continuation header) [D-39] | 7 | Not Started | **Proposed only**, needs approval after the 168x672 LED test |
 
 ## Operator UI (UI)
 | ID | Requirement | Phase | Status | Evidence |
@@ -190,5 +193,29 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PKG-002 | Clean-machine startup test [31] | 13 | Not Started | Human verification required |
 | PKG-003 | Operator documentation [31] | 13 | Not Started | |
 
+
+## Backlog: Video Screen / Playlist (VID) — post-menu, NOT scheduled, NOT started
+Recorded at the user's request as a future feature only. Nothing here is implemented, and the current menu work was deliberately not refactored around it. To be revisited after the planned menu phases are complete.
+
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| VID-001 | A configured Screen can show either Menu content or Video/Playlist content | Backlog | Not Started | |
+| VID-002 | Initial intended use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist | Backlog | Not Started | |
+| VID-003 | Video uses local media files only; operation never depends on the Internet | Backlog | Not Started | |
+| VID-004 | Import local video files (into an app-managed media folder, like logo assets) | Backlog | Not Started | |
+| VID-005 | Multiple videos in a playlist | Backlog | Not Started | |
+| VID-006 | Reorder the playlist | Backlog | Not Started | |
+| VID-007 | Enable / disable individual videos | Backlog | Not Started | |
+| VID-008 | Automatic continuous playback and looping | Backlog | Not Started | |
+| VID-009 | Manual Previous / Next controls | Backlog | Not Started | |
+| VID-010 | Mute / audio controls; muted playback likely the default | Backlog | Not Started | |
+| VID-011 | Fit / Fill behavior for media whose aspect ratio differs from the Screen | Backlog | Not Started | |
+| VID-012 | Native 168x672 media renders without scaling | Backlog | Not Started | |
+| VID-013 | Video is strictly clipped to its assigned Screen rectangle and never affects adjacent Screens | Backlog | Not Started | |
+| VID-014 | Menu rendering and video playback on separate Screens operate simultaneously | Backlog | Not Started | |
+| VID-015 | Missing or corrupt media fails safely without affecting other Screens | Backlog | Not Started | |
+
+Note: spec section 33 originally listed video playback under "do not add unless explicitly requested". This is that explicit request, scheduled after the menu phases.
+
 ## Out of scope (spec section 33)
-Cloud, auth, remote admin, Firebase, web hosting, SaaS, sync, ordering, payments, inventory, POS, free-form drag-and-drop design, video, decorative animation, AI content. Page rotation (RENDER-011) is functional, not decorative.
+Cloud, auth, remote admin, Firebase, web hosting, SaaS, sync, ordering, payments, inventory, POS, free-form drag-and-drop design, decorative animation, AI content. (Video was requested as a post-menu feature; see the VID backlog above.) Page rotation (RENDER-011) is functional, not decorative.

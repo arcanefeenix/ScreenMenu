@@ -37,19 +37,22 @@ public static class PatternDump
     /// is rendered a second time with that logo so the branded layout can be reviewed. Returns the number of files written.
     /// </summary>
     public static int WriteMenus(string folder, IEnumerable<Menu> menus, ScreenLayout layout, FontCatalog fonts,
-        AssetStore assets, string? logoFile, IAppLog log)
+        AssetStore assets, string? logoFile, IAppLog log, (int Width, int Height)? sizeOverride = null)
     {
         Directory.CreateDirectory(folder);
         var written = 0;
+        var report = new System.Text.StringBuilder();
+        var reportMeasurer = new WpfTextMeasurer(fonts.Resolve(null).Family);
         foreach (var menu in menus)
         {
             var screen = layout.Screens.FirstOrDefault(s => s.AssignedMenuId == menu.Id && s.Enabled && s.Width > 0 && s.Height > 0);
-            int w = screen?.Width ?? 336, h = screen?.Height ?? 672;
+            int w = sizeOverride?.Width ?? screen?.Width ?? 336, h = sizeOverride?.Height ?? screen?.Height ?? 672;
             var safe = new string(menu.Name.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
 
             var plain = MenuRenderer.Render(menu, w, h, fonts, assets.Resolve(menu.LogoAsset));
             for (var i = 0; i < plain.PageCount; i++) { Save(Path.Combine(folder, $"{safe}_p{i + 1}of{plain.PageCount}.png"), plain.Pages[i]); written++; }
             foreach (var p in plain.Problems) log.Warn($"{menu.Name}: {p.Message}");
+            report.AppendLine(LayoutReport.Describe(menu.Name, plain, reportMeasurer));
 
             if (logoFile != null && File.Exists(logoFile))
             {
@@ -59,6 +62,7 @@ public static class PatternDump
                 for (var i = 0; i < withLogo.PageCount; i++) { Save(Path.Combine(folder, $"{safe}_WITHLOGO_p{i + 1}of{withLogo.PageCount}.png"), withLogo.Pages[i]); written++; }
             }
         }
+        File.WriteAllText(Path.Combine(folder, $"layout-report_{(sizeOverride?.Width ?? 0)}x{(sizeOverride?.Height ?? 0)}.txt"), report.ToString());
         return written;
     }
 

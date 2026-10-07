@@ -22,11 +22,17 @@ public sealed class ScreenItemViewModel : ObservableObject
             Width = ScreenDefaults.Wall2x2Width;
             Height = ScreenDefaults.Wall2x2Height;
         });
+        NarrowSizeCommand = new RelayCommand(() =>
+        {
+            Width = ScreenDefaults.Wall1x2Width;
+            Height = ScreenDefaults.Wall1x2Height;
+        });
     }
 
     public Screen Model { get; }
     public RelayCommand RemoveCommand { get; }
     public RelayCommand StandardSizeCommand { get; }
+    public RelayCommand NarrowSizeCommand { get; }
 
     public int Number { get => _number; set => Set(ref _number, value); }
 
@@ -131,7 +137,8 @@ public sealed class ScreensViewModel : ObservableObject
         _menus.ScreensUsing = id => _layout.Screens.Where(sc => sc.AssignedMenuId == id)
             .Select(sc => string.IsNullOrWhiteSpace(sc.Name) ? "(unnamed screen)" : sc.Name).ToList();
         _menus.MenusChanged += () => { foreach (var i in Items) i.RaiseMenusChanged(); Revalidate(); };
-        AddCommand = new RelayCommand(Add);
+        AddCommand = new RelayCommand(() => Add(ScreenDefaults.Wall2x2Width, ScreenDefaults.Wall2x2Height));
+        AddNarrowCommand = new RelayCommand(() => Add(ScreenDefaults.Wall1x2Width, ScreenDefaults.Wall1x2Height));
         DismissSaveErrorCommand = new RelayCommand(() => SaveError = null);
         Renumber();
         RefreshCanvas();
@@ -142,6 +149,7 @@ public sealed class ScreensViewModel : ObservableObject
 
     internal IReadOnlyList<MenuChoice> MenuChoices => _menus.Choices;
     public RelayCommand AddCommand { get; }
+    public RelayCommand AddNarrowCommand { get; }
     public RelayCommand DismissSaveErrorCommand { get; }
 
     /// <summary>Raised whenever the canvas needs redrawing.</summary>
@@ -215,10 +223,8 @@ public sealed class ScreensViewModel : ObservableObject
         Revalidate();
     }
 
-    private void Add()
+    private void Add(int w, int h)
     {
-        var w = ScreenDefaults.Wall2x2Width;
-        var h = ScreenDefaults.Wall2x2Height;
         var (x, y) = ScreenPlacement.NextFreePosition(_layout.Screens, Canvas.Size, w, h);
         var screen = new Screen { Name = NextName(), X = x, Y = y, Width = w, Height = h };
         _layout.Screens.Add(screen);

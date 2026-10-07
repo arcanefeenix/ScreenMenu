@@ -95,14 +95,22 @@ public partial class App : Application
             return;
         }
 
-        // Diagnostic mode: LedMenu.App.exe --dump-menus <folder> [logo.png]
+        // Diagnostic mode: LedMenu.App.exe --dump-menus <folder> [logo.png] [WIDTHxHEIGHT]
         var menuDumpIdx = Array.IndexOf(e.Args, "--dump-menus");
         if (menuDumpIdx >= 0 && menuDumpIdx + 1 < e.Args.Length)
         {
-            var logo = menuDumpIdx + 2 < e.Args.Length ? e.Args[menuDumpIdx + 2] : null;
+            // optional extra arguments, in any order: an existing image file (logo) and/or a size like 168x672
+            string? logo = null;
+            (int, int)? size = null;
+            foreach (var a in e.Args.Skip(menuDumpIdx + 2))
+            {
+                if (File.Exists(a)) { logo = a; continue; }
+                var parts = a.ToLowerInvariant().Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var sw) && int.TryParse(parts[1], out var sh)) size = (sw, sh);
+            }
             var count = PatternDump.WriteMenus(e.Args[menuDumpIdx + 1],
                 _menuLibrary!.Menus.Count > 0 ? _menuLibrary.Menus : SampleMenus.All.Select(i => i.Create()).ToList(), _screenLayout,
-                new FontCatalog(Path.Combine(AppContext.BaseDirectory, "Fonts")), assets, logo, _log);
+                new FontCatalog(Path.Combine(AppContext.BaseDirectory, "Fonts")), assets, logo, _log, size);
             _log.Info($"Menu pages written to {e.Args[menuDumpIdx + 1]}: {count} file(s).");
             Shutdown();
             return;

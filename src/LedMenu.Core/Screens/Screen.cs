@@ -27,6 +27,10 @@ public static class ScreenDefaults
     /// <summary>Two panels wide by two high at 168x336 per panel: the current expected LED wall.</summary>
     public const int Wall2x2Width = 336;
     public const int Wall2x2Height = 672;
+
+    /// <summary>One panel wide by two high (168x336 per panel): a single narrow column of the wall.</summary>
+    public const int Wall1x2Width = 168;
+    public const int Wall1x2Height = 672;
 }
 
 public readonly record struct CanvasSize(int Width, int Height)
