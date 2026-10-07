@@ -124,7 +124,7 @@
                                 <Button Style="{StaticResource ActionButton}" Margin="0" Content="Add Item" Command="{Binding AddLooseItemCommand}"/>
                             </StackPanel>
                             <TextBlock Foreground="#FFEDEDED" Text="MENU" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <ComboBox Width="280" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            <ComboBox Foreground="#FF111111" Background="White" Width="280" Margin="14,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
                                       ItemsSource="{Binding MenuChoices}" DisplayMemberPath="Name" SelectedValuePath="Id"
                                       SelectedValue="{Binding SelectedMenuId}"/>
                         </DockPanel>
@@ -229,7 +229,7 @@
                                                                     <StackPanel Orientation="Horizontal">
                                                                         <CheckBox Content="Featured" IsChecked="{Binding Featured}" Foreground="#FFEDEDED" VerticalAlignment="Center" Margin="0,0,16,0"/>
                                                                         <TextBlock Foreground="#FFEDEDED" Text="Category" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                                                        <ComboBox Width="190" ItemsSource="{Binding CategoryChoices}" DisplayMemberPath="Name"
+                                                                        <ComboBox Foreground="#FF111111" Background="White" Width="190" ItemsSource="{Binding CategoryChoices}" DisplayMemberPath="Name"
                                                                                   SelectedValuePath="Id" SelectedValue="{Binding CategoryKey}" Margin="0,0,16,0"/>
                                                                         <Button Content="&#9650; Move up" Padding="8,3" Margin="0,0,6,0" Command="{Binding MoveUpCommand}"/>
                                                                         <Button Content="&#9660; Move down" Padding="8,3" Margin="0,0,16,0" Command="{Binding MoveDownCommand}"/>
@@ -399,7 +399,7 @@
                                                     <TextBlock Foreground="#FFEDEDED" Text="Height" VerticalAlignment="Center" Margin="14,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding Height, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Foreground="#FFEDEDED" Text="Menu" VerticalAlignment="Center" Margin="18,0,4,0"/>
-                                                    <ComboBox Width="200" VerticalAlignment="Center" ItemsSource="{Binding MenuChoices}"
+                                                    <ComboBox Foreground="#FF111111" Background="White" Width="200" VerticalAlignment="Center" ItemsSource="{Binding MenuChoices}"
                                                               DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignedMenuKey}"/>
                                                 </StackPanel>
                                                 <TextBlock Foreground="#FFEDEDED" Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
@@ -561,8 +561,8 @@
                             <TextBlock Foreground="#FFEDEDED" Text="PREVIEW" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
                         <TextBlock Style="{StaticResource Dim}" Text="{Binding CanvasDescription}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
-                        <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Scales}" SelectedItem="{Binding SelectedScale}" Margin="0,0,0,4"/>
+                        <ComboBox Foreground="#FF111111" Background="White" ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" Margin="0,0,0,4"/>
+                        <ComboBox Foreground="#FF111111" Background="White" ItemsSource="{Binding Scales}" SelectedItem="{Binding SelectedScale}" Margin="0,0,0,4"/>
                         <TextBlock Style="{StaticResource Dim}" Text="{Binding Status}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
                     </StackPanel>
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
