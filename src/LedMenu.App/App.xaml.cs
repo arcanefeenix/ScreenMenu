@@ -159,7 +159,9 @@ public partial class App : Application
                 return (problems, $"Shown as {result.PageCount} page{(result.PageCount == 1 ? "" : "s")} at {w}×{h}");
             });
         menus.MenusChanged += _editor.RefreshMenus;
-        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus, _editor);
+        var preview = new PreviewViewModel(output);
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus, _editor, preview);
+        output.Refresh();
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>
         var args = e.Args;

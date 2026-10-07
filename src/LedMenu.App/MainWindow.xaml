@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:LedMenu.App.Controls"
         xmlns:local="clr-namespace:LedMenu.App"
-        Title="LED Menu Control" Height="760" Width="1100" MinHeight="520" MinWidth="760"
+        Title="LED Menu Control" Height="800" Width="1480" MinHeight="560" MinWidth="1000"
         Background="#FF1E1E1E" Foreground="#FFEDEDED">
     <Window.InputBindings>
         <KeyBinding Key="F12" Modifiers="Ctrl+Shift" Command="{Binding Output.StopCommand}"/>
@@ -101,7 +101,12 @@
         </StackPanel>
 
         <!-- Displays and Screens (menu editing and preview arrive in later phases) -->
-        <TabControl Grid.Row="2" Margin="16,0" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A" TextElement.Foreground="#FFEDEDED" SelectionChanged="Tabs_SelectionChanged">
+        <Grid Grid.Row="2" Margin="16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+        <TabControl Grid.Column="0" Margin="0,0,10,0" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A" TextElement.Foreground="#FFEDEDED" SelectionChanged="Tabs_SelectionChanged">
             <TabControl.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="Foreground" Value="#FFEDEDED"/>
@@ -535,6 +540,40 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+            <Border Grid.Column="1" Width="436" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A" BorderThickness="1" Padding="10"
+                    DataContext="{Binding Preview}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <DockPanel Margin="0,0,0,4">
+                            <Border DockPanel.Dock="Right" CornerRadius="3" Padding="8,2" VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#FF555555"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLive}" Value="True">
+                                                <Setter Property="Background" Value="#FFC62828"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock Foreground="White" Text="{Binding LiveText}" FontWeight="Bold" FontSize="12"/>
+                            </Border>
+                            <TextBlock Foreground="#FFEDEDED" Text="PREVIEW" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Dim}" Text="{Binding CanvasDescription}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
+                        <ComboBox ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding Scales}" SelectedItem="{Binding SelectedScale}" Margin="0,0,0,4"/>
+                        <TextBlock Style="{StaticResource Dim}" Text="{Binding Status}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,6"/>
+                    </StackPanel>
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <Border Background="Black" BorderBrush="#FF666666" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <controls:ScaledFrameControl AutomationProperties.AutomationId="PreviewImage"
+                                                         Frame="{Binding Frame}" Region="{Binding Region}" Scale="{Binding Scale}"/>
+                        </Border>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
 
         <!-- Footer -->
         <DockPanel Grid.Row="3" Margin="16,8">

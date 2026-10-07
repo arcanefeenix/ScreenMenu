@@ -13,20 +13,24 @@ namespace LedMenu.App.ViewModels;
 /// Start / Stop for LED output, plus the output mode (normal, identify, screen calibration, canvas calibration).
 /// Starting is refused (with a reason, and nothing opened) unless the saved output display is connected right now.
 /// Output never moves to a different display. Modes only change what is drawn; they never write configuration.
+/// The current output picture is built whether or not output is running, so the operator's preview shows exactly
+/// what the LED shows (or will show); only the output window is conditional.
 /// </summary>
-public sealed class OutputViewModel : ObservableObject
+public sealed class OutputViewModel : ObservableObject, IFrameSource
 {
     private static readonly TimeSpan IdentifyDuration = TimeSpan.FromSeconds(15);
+    private static readonly CanvasSize StandInCanvas = new(1920, 1080);
 
     private readonly OutputController _controller;
     private readonly DisplaysViewModel _displays;
     private readonly ScreensViewModel _screens;
     private readonly MenusViewModel _menus;
-    private readonly MenuRenderService _render;
+    private readonly NormalFrameBuilder _builder;
     private readonly PageClock _pageClock = new();
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     private readonly DispatcherTimer _rotationTimer;
-    private readonly Dictionary<Guid, (Guid MenuId, int Page, int Count)> _shown = new();
+    private IReadOnlyDictionary<Guid, (Guid MenuId, int Page, int Count)> _shown =
+        new Dictionary<Guid, (Guid, int, int)>();
     private string? _contentWarnings;
     private readonly StopHotKey _hotKey;
     private readonly IAppLog _log;
@@ -39,19 +43,21 @@ public sealed class OutputViewModel : ObservableObject
     private string? _skippedText;
     private int _frameRequested;
     private int _frameShown;
+    private CanvasSize _canvas = StandInCanvas;
+    private PixelBuffer? _blank;
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
         MenusViewModel menus, MenuRenderService render,
         StopHotKey hotKey, IAppLog log, Func<IReadOnlyList<string>, string, bool> confirm)
     {
         _menus = menus;
-        _render = render;
         _controller = controller;
         _displays = displays;
         _screens = screens;
         _hotKey = hotKey;
         _log = log;
         _confirm = confirm;
+        _builder = new NormalFrameBuilder(menus.Find, render, _pageClock, () => _clock.Elapsed);
 
         StartCommand = new RelayCommand(Start, () => !_isRunning);
         StopCommand = new RelayCommand(() => Stop("Stop requested by the operator"), () => _isRunning);
@@ -70,16 +76,17 @@ public sealed class OutputViewModel : ObservableObject
             if (_mode == OutputMode.IdentifyScreens) SetMode(OutputMode.Normal);
         };
 
-        // Screens edited while a pattern is showing: redraw once things settle (dragging fires many changes).
+        // Screens or menus edited: redraw once things settle (dragging and typing fire many changes).
         _redrawDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); if (_isRunning) RenderFrame(); };
+        _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); RenderFrame(); };
         _screens.Changed += RequestRedraw;
         _menus.MenusChanged += RequestRedraw;
         _menus.ContentChanged += RequestRedraw;
 
         // Pages rotate on elapsed time; this timer only notices when a screen's page has changed and redraws.
         _rotationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _rotationTimer.Tick += (_, _) => { if (_isRunning && _mode == OutputMode.Normal && PagesChanged()) RenderFrame(); };
+        _rotationTimer.Tick += (_, _) => { if (_mode == OutputMode.Normal && _builder.PagesChanged(_shown)) RenderFrame(); };
+        _rotationTimer.Start();
 
         _controller.StateChanged += OnStateChanged;
         _controller.StopRequested += () => Stop("Escape pressed on the output window");
@@ -130,8 +137,38 @@ public sealed class OutputViewModel : ObservableObject
     public string? SkippedText { get => _skippedText; private set { if (Set(ref _skippedText, value)) OnPropertyChanged(nameof(HasSkipped)); } }
     public bool HasSkipped => !string.IsNullOrEmpty(_skippedText);
 
-    /// <summary>The frame currently on the LED output (null while normal black output or stopped).</summary>
+    // ---- the current picture (shared by the LED output and the preview) -----------------------
+
+    /// <summary>The picture for the current mode, or null while it is pure black (normal output with nothing assigned).</summary>
     public PixelBuffer? LastFrame { get; private set; }
+
+    /// <summary>The picture, never null: a black canvas of the right size when nothing is drawn. This is what the preview shows.</summary>
+    public PixelBuffer CurrentFrame => LastFrame ?? Blank(_canvas);
+
+    /// <summary>Size of the output canvas the picture is built for.</summary>
+    public CanvasSize Canvas => _canvas;
+
+    /// <summary>The screens that are drawn in the current picture (enabled and valid), in list order.</summary>
+    public IReadOnlyList<CalibrationScreen> DrawnScreens { get; private set; } = Array.Empty<CalibrationScreen>();
+
+    /// <summary>Raised whenever <see cref="CurrentFrame"/>, its size or its screens changed.</summary>
+    public event Action? FrameChanged;
+
+    /// <summary>One line saying what the picture is: live output, a stopped preview, or a stand-in size.</summary>
+    public string CanvasDescription
+    {
+        get
+        {
+            var info = _screens.Canvas;
+            if (_isRunning) return $"LIVE on the LED output — canvas {_canvas}";
+            return info.Source switch
+            {
+                CanvasSource.Live => $"Output stopped — preview of canvas {_canvas} ({info.DisplayName})",
+                CanvasSource.LastKnown => $"Output display not connected — preview of its last known size {_canvas}",
+                _ => $"No output display selected — preview on a {_canvas} stand-in canvas",
+            };
+        }
+    }
 
     /// <summary>False while a new frame is being prepared or has not reached the output window yet.</summary>
     public bool FrameUpToDate => _frameShown == _frameRequested;
@@ -160,6 +197,7 @@ public sealed class OutputViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCanvasCalibrationMode));
         OnPropertyChanged(nameof(IsTestMode));
         OnPropertyChanged(nameof(ModeBannerText));
+        OnPropertyChanged(nameof(CanvasDescription));
         _displays.SetTestLabel(_isRunning && _mode != OutputMode.Normal ? ModeName(_mode).ToUpperInvariant() : null);
     }
 
@@ -172,13 +210,19 @@ public sealed class OutputViewModel : ObservableObject
         _ => m.ToString(),
     };
 
-    /// <summary>Builds the frame for the current mode off the UI thread and puts it on the output when ready.</summary>
+    /// <summary>The canvas size the picture is built for: the real output when running, otherwise the best known size.</summary>
+    private CanvasSize CurrentCanvas() =>
+        _isRunning && _controller.Display is { } d ? new CanvasSize(d.Width, d.Height)
+        : _screens.Canvas.Size ?? StandInCanvas;
+
+    /// <summary>
+    /// Builds the picture for the current mode (test patterns off the UI thread) and keeps it as the current frame.
+    /// If output is running it is also put on the output window.
+    /// </summary>
     private void RenderFrame()
     {
-        if (!_isRunning || _controller.Display is not { } display) { SkippedText = null; return; }
-
         var requested = ++_frameRequested;
-        var canvas = new CanvasSize(display.Width, display.Height);
+        var canvas = CurrentCanvas();
         var mode = _mode;
         var plan = _screens.BuildCalibrationPlan(canvas);
 
@@ -190,9 +234,10 @@ public sealed class OutputViewModel : ObservableObject
         {
             try
             {
-                var normal = BuildNormalFrame(canvas, plan);
-                LastFrame = normal;
-                _controller.ShowFrame(normal);          // null = pure black
+                var result = _builder.Build(canvas, plan);
+                _shown = result.Shown;
+                ContentWarnings = result.Warnings.Count == 0 ? null : string.Join("\n", result.Warnings);
+                Publish(result.Frame, canvas, plan.Drawn);
             }
             catch (Exception ex)
             {
@@ -203,7 +248,9 @@ public sealed class OutputViewModel : ObservableObject
             _frameShown = requested;
             return;
         }
+
         ContentWarnings = null;
+        _shown = new Dictionary<Guid, (Guid, int, int)>();
 
         var dispatcher = System.Windows.Application.Current.Dispatcher;
         _ = Task.Run(() =>
@@ -215,11 +262,10 @@ public sealed class OutputViewModel : ObservableObject
                 sw.Stop();
                 dispatcher.InvokeAsync(() =>
                 {
-                    if (requested != _frameRequested || !_isRunning) return;   // superseded or output stopped
-                    LastFrame = frame;
-                    _controller.ShowFrame(frame);
+                    if (requested != _frameRequested) return;   // superseded by a newer request
+                    Publish(frame, canvas, plan.Drawn);
                     _frameShown = requested;
-                    _log.Info($"Frame shown: {ModeName(mode)} {canvas} with {plan.Drawn.Count} screen(s), {plan.Skipped.Count} skipped, built in {sw.ElapsedMilliseconds} ms.");
+                    _log.Info($"Frame built: {ModeName(mode)} {canvas} with {plan.Drawn.Count} screen(s), {plan.Skipped.Count} skipped, in {sw.ElapsedMilliseconds} ms.");
                 });
             }
             catch (Exception ex)
@@ -230,9 +276,27 @@ public sealed class OutputViewModel : ObservableObject
         });
     }
 
+    /// <summary>Makes a built picture current: remember it for the preview and, if running, send it to the LED output.</summary>
+    private void Publish(PixelBuffer? frame, CanvasSize canvas, IReadOnlyList<CalibrationScreen> drawn)
+    {
+        _canvas = canvas;
+        LastFrame = frame;
+        DrawnScreens = drawn;
+        if (_isRunning) _controller.ShowFrame(frame);          // null = pure black
+        OnPropertyChanged(nameof(CanvasDescription));
+        FrameChanged?.Invoke();
+    }
+
+    private PixelBuffer Blank(CanvasSize size)
+    {
+        if (_blank == null || _blank.Width != size.Width || _blank.Height != size.Height)
+            _blank = new PixelBuffer(size.Width, size.Height);
+        return _blank;
+    }
+
     // ---- normal output: menus -------------------------------------------------------------------
 
-    /// <summary>Problems with the menus currently on the LED output (missing logo, overflowing item, font fallback). Null when there are none.</summary>
+    /// <summary>Problems with the menus in the current picture (missing logo, overflowing item, font fallback). Null when there are none.</summary>
     public string? ContentWarnings
     {
         get => _contentWarnings;
@@ -240,58 +304,20 @@ public sealed class OutputViewModel : ObservableObject
     }
     public bool HasContentWarnings => !string.IsNullOrEmpty(_contentWarnings);
 
-    private TimeSpan Now => _clock.Elapsed;
-
-    /// <summary>
-    /// Black canvas with each assigned menu's current page placed at its screen. Every page is the screen's own pixel size.
-    /// Screens with no menu, a missing menu, or errors stay black. Null when nothing at all is drawn.
-    /// </summary>
-    private PixelBuffer? BuildNormalFrame(CanvasSize canvas, CalibrationPlan plan)
-    {
-        var parts = new List<(int, int, PixelBuffer)>();
-        var warnings = new List<string>();
-        _shown.Clear();
-
-        foreach (var s in plan.Drawn)
-        {
-            if (s.MenuId is not { } menuId || _menus.Find(menuId) is not { } menu) continue;
-
-            var result = _render.Get(menu, s.Width, s.Height);
-            foreach (var p in result.Problems) warnings.Add($"{menu.Name}: {p.Message}");
-
-            var page = _pageClock.PageFor(s.Id, result.PageCount, PageClock.Period(menu.Theme.PageSeconds), Now);
-            _shown[s.Id] = (menuId, page, result.PageCount);
-            parts.Add((s.X, s.Y, result.Pages[Math.Min(page, result.PageCount - 1)]));
-        }
-
-        ContentWarnings = warnings.Count == 0 ? null : string.Join("\n", warnings.Distinct());
-        return parts.Count == 0 ? null : FrameComposer.ComposeScreens(canvas.Width, canvas.Height, parts);
-    }
-
-    /// <summary>True when any screen's current page is no longer the page that is on the wall.</summary>
-    private bool PagesChanged()
-    {
-        foreach (var (screenId, shown) in _shown)
-        {
-            if (shown.Count <= 1 || _menus.Find(shown.MenuId) is not { } menu) continue;
-            var page = _pageClock.PageFor(screenId, shown.Count, PageClock.Period(menu.Theme.PageSeconds), Now);
-            if (page != shown.Page) return true;
-        }
-        return false;
-    }
-
-    /// <summary>The page of this menu that is on the LED output right now (zero-based), or null if it is not being shown.</summary>
+    /// <summary>The page of this menu that is showing right now (zero-based), or null if it is not in the current picture.</summary>
     public (int Page, int Count)? LivePageOf(Guid menuId)
     {
-        if (!_isRunning || _mode != OutputMode.Normal) return null;
+        if (_mode != OutputMode.Normal) return null;
         foreach (var shown in _shown.Values)
             if (shown.MenuId == menuId) return (shown.Page, shown.Count);
         return null;
     }
 
+    /// <summary>Builds the current picture now (used once at start-up so the preview is not empty).</summary>
+    public void Refresh() => RenderFrame();
+
     private void RequestRedraw()
     {
-        if (!_isRunning) return;
         _redrawDebounce.Stop();
         _redrawDebounce.Start();
     }
@@ -343,33 +369,30 @@ public sealed class OutputViewModel : ObservableObject
         {
             _hotKey.Unregister();
             _identifyTimer.Stop();
-            _redrawDebounce.Stop();
-            _rotationTimer.Stop();
-            _shown.Clear();
-            ContentWarnings = null;
             // A stopped output always returns to Normal, so a test pattern can never reappear by surprise at the next start.
             if (_mode != OutputMode.Normal) _log.Info($"Output stopped; mode reset from {ModeName(_mode)} to Normal Output.");
             _mode = OutputMode.Normal;
-            LastFrame = null;
             SkippedText = null;
-            _frameShown = _frameRequested;
         }
         if (!running && reason != null && reason.StartsWith("The output window was closed"))
             Message = reason;
         RaiseModeChanged();
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
-        if (running)
-        {
-            _pageClock.ResetAll();                  // every menu starts at page 1 when output starts
-            _rotationTimer.Start();
-            RenderFrame();
-        }
+
+        _pageClock.ResetAll();                      // every menu starts at page 1 when output starts (and the preview restarts when it stops)
+        RenderFrame();
     }
 
     private void OnDisplaysRefreshed()
     {
-        if (!_isRunning) return;
+        if (!_isRunning)
+        {
+            // the preview follows the best known canvas size
+            if (CurrentCanvas() != _canvas) RenderFrame();
+            else OnPropertyChanged(nameof(CanvasDescription));
+            return;
+        }
 
         var match = _displays.OutputMatch;
         if (match.Kind != MatchKind.Exact || match.Display is null)

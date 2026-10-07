@@ -73,8 +73,15 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Tests:** 40 new automated tests: 9 for the autosave debouncer (Core) and 31 for the editor view-models (new `LedMenu.App.Tests` project). Live on the real monitor: Sold Out, Hide and a typed price each changed the wall to exactly the expected render (0 differing pixels in 3 of 3), the price was not written to disk until typing paused, and typing then closing the window at once was still saved.
 **Not in this phase:** drag-and-drop reordering (up/down buttons instead), choosing the template or font in the UI, keyboard shortcuts documentation (Phase 10), the full live preview of the output canvas (Phase 9).
 
-## Phases 9–13
-As in the spec (sections 31 and 32): operator menu UI, live preview (scaled and 100%), blackout and shortcuts, multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
+## Phase 9 — Live Preview (complete)
+**Scope:** one shared frame builder for LED output and preview, preview panel beside the tabs (whole output fitted; any screen at 100%/200%/300%/400%), LIVE/STOPPED badge, preview kept current when output is stopped.
+**Requirements:** UI-006 and UI-007 Implemented (not yet viewed by a person in the running app).
+**Tests:** 44 new automated tests: PreviewMath (Core), PreviewViewModel (7), and the scaled control rendered offscreen and compared pixel by pixel (100% = 0 differing pixels; 300% = exact 3x3 blocks; fit fills the box). Full suite 504 passing, build with warnings as errors clean. A test caught a real bug: a moved screen kept its old rectangle in the preview.
+**Not verified:** a screenshot of the running window could not be captured in this session, so the panel layout was not eyeballed. Human check: start the app, open Screens, add a 336x672 screen, pick it in the preview and confirm 100%.
+**Not in this phase:** blackout and shortcut documentation (Phase 10).
+
+## Phases 10–13
+As in the spec (sections 31 and 32): blackout and shortcuts, multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.
