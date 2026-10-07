@@ -3,6 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LED Menu Control" Height="760" Width="1100" MinHeight="520" MinWidth="760"
         Background="#FF1E1E1E" Foreground="#FFEDEDED">
+    <Window.InputBindings>
+        <KeyBinding Key="F12" Modifiers="Ctrl+Shift" Command="{Binding Output.StopCommand}"/>
+    </Window.InputBindings>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <Style TargetType="TextBlock">
@@ -32,15 +35,42 @@
             <TextBlock Text="LED MENU CONTROL" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
         </DockPanel>
 
-        <!-- Recovery / startup notice -->
-        <Border Grid.Row="1" Background="#FF8A5A00" Padding="16,8" Margin="16,0,16,8"
-                Visibility="{Binding HasStartupNotice, Converter={StaticResource BoolToVis}}">
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2"
-                        Command="{Binding DismissNoticeCommand}"/>
-                <TextBlock Text="{Binding StartupNotice}" TextWrapping="Wrap" VerticalAlignment="Center"/>
-            </DockPanel>
-        </Border>
+        <StackPanel Grid.Row="1">
+            <!-- Recovery / startup notice -->
+            <Border Background="#FF8A5A00" Padding="16,8" Margin="16,0,16,8"
+                    Visibility="{Binding HasStartupNotice, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2"
+                            Command="{Binding DismissNoticeCommand}"/>
+                    <TextBlock Text="{Binding StartupNotice}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Border>
+
+            <!-- LED output controls -->
+            <Border Margin="16,0,16,10" Padding="14,10" Background="#FF262626" BorderBrush="#FF4A4A4A" BorderThickness="1"
+                    DataContext="{Binding Output}">
+                <StackPanel>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button Content="Start Output" Padding="18,8" FontWeight="Bold" Margin="0,0,8,0"
+                                    Command="{Binding StartCommand}"/>
+                            <Button Content="Stop Output" Padding="18,8" FontWeight="Bold"
+                                    Command="{Binding StopCommand}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource Dim}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Text="Stop output at any time: Ctrl+Shift+F12"/>
+                    </DockPanel>
+                    <Border Background="#FF8A5A00" Padding="12,6" Margin="0,10,0,0"
+                            Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0"
+                                    Command="{Binding DismissMessageCommand}"/>
+                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
 
         <!-- Displays (menu editing and preview arrive in later phases) -->
         <ScrollViewer Grid.Row="2" Margin="16,0" VerticalScrollBarVisibility="Auto">

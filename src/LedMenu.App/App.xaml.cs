@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
 using LedMenu.App.Display;
+using LedMenu.App.Output;
 using LedMenu.App.ViewModels;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Models;
@@ -16,10 +17,14 @@ public partial class App : Application
     private JsonFileStore<AppSettings>? _settingsStore;
     private AppSettings _settings = new();
     private DisplaysViewModel? _displays;
+    private OutputController? _controller;
+    private StopHotKey? _hotKey;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // If the operator window closes, the app must end; a leftover fullscreen output window would strand the operator.
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         _singleInstance = new Mutex(true, @"Local\LedMenuControl.SingleInstance", out var isFirst);
         if (!isFirst)
@@ -62,7 +67,25 @@ public partial class App : Application
             confirm: ConfirmSelection,
             operatorWindowMonitor: () => Win32DisplaySource.MonitorOfWindow(new WindowInteropHelper(window).Handle),
             identify: (display, number) => new IdentifyWindow(display, number, TimeSpan.FromSeconds(4)).Show());
-        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays);
+
+        var hwnd = new WindowInteropHelper(window).Handle;
+        _controller = new OutputController(_log);
+        _hotKey = new StopHotKey(hwnd, _log);
+        var output = new OutputViewModel(_controller, _displays, _hotKey, _log, ConfirmStart);
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output);
+
+        // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>
+        var args = e.Args;
+        var idx = Array.IndexOf(args, "--selftest-output");
+        if (idx >= 0 && idx + 1 < args.Length)
+        {
+            var report = args[idx + 1];
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                await OutputSelfTest.RunAsync(output, _controller, paths.SettingsFile, hwnd, report, _log);
+                Shutdown();
+            });
+        }
     }
 
     private void SaveSettings()
@@ -77,8 +100,16 @@ public partial class App : Application
             "Confirm display selection", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
         == MessageBoxResult.Yes;
 
+    private bool ConfirmStart(IReadOnlyList<string> warnings, string question) =>
+        MessageBox.Show(
+            string.Join("\n\n", warnings.Select(w => "• " + w)) + "\n\n" + question,
+            "Confirm LED output", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+        == MessageBoxResult.Yes;
+
     protected override void OnExit(ExitEventArgs e)
     {
+        _controller?.Dispose();
+        _hotKey?.Dispose();
         _displays?.Dispose();
         _log?.Info("Application shutdown.");
         if (_singleInstance != null)

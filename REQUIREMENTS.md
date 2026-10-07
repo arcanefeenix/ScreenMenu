@@ -23,8 +23,8 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | DISP-002 | Operator selects LED Output Display and Operator Display [6] | 2 | Implemented | LED output selection verified end to end (select, persist, restart). Operator selection implemented and unit-tested but not exercised in the live UI; it is a remembered label only, the window is not moved (D-10) |
 | DISP-003 | Detect each display's pixel resolution and DPI [7, 16] | 2 | Implemented | Real PC: 3840×2160 at 150% shown for both. Verified only with identical scaling on both monitors; mixed-DPI hardware check still outstanding (conversion logic is unit-tested) |
 | DISP-004 | Persist selection with enough identity to restore it (device path, bounds fallback) [6] | 2 | Verified | 14 unit tests on matching/persistence; live restart restored LED output as "OUTPUT: STOPPED / LED OUTPUT" |
-| DISP-005 | If saved output display is missing: output disabled, operator alerted, can choose another; never auto-substitute [6, 22] | 2 | Implemented | Live test with a saved display that is not connected: chip "OUTPUT: NO DISPLAY", alert names it, saved identity untouched, no other display selected. The start-output refusal itself is enforced in Phase 3 |
-| DISP-006 | Operator always retains control [6] | 2 | Implemented | Nothing fullscreen exists yet; becomes verifiable in Phase 3 |
+| DISP-005 | If saved output display is missing: output disabled, operator alerted, can choose another; never auto-substitute [6, 22] | 2 | Verified | Start with a saved display that is not connected: refused with a clear message, no output window created, no other display used, saved identity unchanged |
+| DISP-006 | Operator always retains control [6] | 2 | Verified | Operator window stayed operable and could always stop output |
 | DISP-007 | Warn and require confirmation before choosing the operator's own / primary / only display as output [D-1] | 2 | Verified | Policy unit tests; live test: choosing the primary display raised the confirmation dialog and saved nothing while it was open |
 | DISP-008 | Identify Displays: temporary large number + name on each monitor (non-fullscreen, no focus steal, auto-closes) | 2 | Verified | Live test: 640×360 label centered on both monitors including the one at negative coordinates, closed itself after 4 s |
 | DISP-009 | UI shows number, name, resolution, scaling, position, Windows name, device ID, and tags WINDOWS PRIMARY / OPERATOR DISPLAY / OPERATOR WINDOW IS HERE / LED OUTPUT | 2 | Verified | Screenshot of the running app |
@@ -34,13 +34,18 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Output window (OUT)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| OUT-001 | Borderless, no chrome, no scrollbars, no controls, fills selected display, covers taskbar [5] | 3 | Not Started | |
-| OUT-002 | Canvas uses the actual pixel size of the selected display [7] | 3 | Not Started | |
-| OUT-003 | Unused canvas is pure black [7] | 3 | Not Started | |
-| OUT-004 | Start / Stop output without closing the app [27] | 3 | Not Started | |
+| OUT-001 | Borderless, no chrome, no scrollbars, no controls, fills selected display, covers taskbar [5] | 3 | Implemented | Window rect = display bounds and client area = display size; all 8,294,400 pixels matched a known pattern, so no title bar, border, rounded corner or taskbar covers it. Verified on the 4K/150% dev monitors only, not on the VP2 |
+| OUT-002 | Canvas uses the actual pixel size of the selected display [7] | 3 | Implemented | Window sized from the display actually selected (3840x2160 here); not yet seen on a 1920x1080 / VP2 signal |
+| OUT-003 | Unused canvas is pure black [7] | 3 | Implemented | Interior capture: 8,282,404 of 8,282,404 pixels exactly #000000 on the dev display. Not yet checked on the VP2 |
+| OUT-004 | Start / Stop output without closing the app [27] | 3 | Verified | Start, Stop, Start, Stop run twice by self-test and again via the UI; settings file byte-identical afterwards |
 | OUT-005 | Output window uses the same renderer as preview [5, 15] | 9 | Not Started | |
-| OUT-006 | Monitor disconnect: no crash, operator notified, no hijacking another display, reconnects only to the same display [22] | 12 | Not Started | |
-| OUT-007 | Output never steals keyboard focus from the operator window [27, D-1] | 3 | Not Started | |
+| OUT-006 | Monitor disconnect: no crash, operator notified, no hijacking another display, reconnects only to the same display [22] | 12 | In Progress | Output stops (not redirected) if the display disappears, and repositions if its size changes; logic written but not exercised because no monitor could be unplugged |
+| OUT-007 | Output never steals keyboard focus from the operator window [27, D-1] | 3 | Verified | Output window IsActive=false after start, the operator window stayed foreground; Esc sent while focus was elsewhere did nothing |
+| OUT-008 | Start is refused unless the saved display is matched by device ID and connected right now; never redirected [D-14] | 3 | Verified | Unit tests (8) and live missing-display test |
+| OUT-009 | Output window never rounds corners or draws a DWM border; sits topmost over the taskbar | 3 | Verified | Full-screen pixel comparison had 0 mismatches including corner and edge pixels |
+| OUT-010 | Operator-window-on-output-display warning is repeated at start, with a No default [D-14] | 3 | Verified | Dialog appeared; No cancelled; Yes started; hotkey recovered |
+| OUT-011 | Esc stops output only when the output window itself has focus (it is never focused automatically) [D-14] | 3 | Verified | Esc did nothing with focus elsewhere; stopped output after the output window was focused |
+| OUT-012 | Closing the operator window ends the app, so a fullscreen output cannot be orphaned | 3 | Implemented | ShutdownMode=OnMainWindowClose; not exercised |
 
 ## Screens (SCR)
 | ID | Requirement | Phase | Status | Evidence |
@@ -83,8 +88,8 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 |---|---|---|---|---|
 | RENDER-001 | One authoritative pipeline for preview and output [15, 28] | 7 | Not Started | |
 | RENDER-002 | Render at each Screen's native W×H, then place into the canvas [16] | 7 | Not Started | |
-| RENDER-003 | 1 rendered pixel = 1 output pixel regardless of Windows DPI scaling [16] | 3 | In Progress | PerMonitorV2 manifest declared; pixel read-back tests come with Phase 3 |
-| RENDER-004 | Pixel-snapped placement, nearest-neighbor, no blur [16] | 3 | Not Started | |
+| RENDER-003 | 1 rendered pixel = 1 output pixel regardless of Windows DPI scaling [16] | 3 | Implemented | Output window reads its own DPI (WPF 144 = Windows 144 on the output monitor). Both dev monitors are 150%, so a DPI different from the operator monitor has not been exercised on hardware; conversion maths unit-tested |
+| RENDER-004 | Pixel-snapped placement, nearest-neighbor, no blur [16] | 3 | Implemented | Probe bitmap drawn 1:1 with nearest-neighbor and pixel snapping reproduced exactly in a screen capture; menu bitmaps use the same host in Phase 7 |
 | RENDER-005 | First template tuned for 336×672 portrait; large type, high contrast [14] | 7 | Not Started | |
 | RENDER-006 | Multiple templates possible later [14, 34] | 7 | Not Started | |
 | RENDER-007 | Category headers supported [13] | 7 | Not Started | |
@@ -100,7 +105,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Operator UI (UI)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Chip now reflects display state (NO DISPLAY SELECTED / NO DISPLAY / CONFIRM DISPLAY / STOPPED). LIVE and BLACKOUT states arrive in Phases 3 and 10 |
+| UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Chip shows NO DISPLAY SELECTED / NO DISPLAY / CONFIRM DISPLAY / STOPPED / LIVE. BLACKOUT arrives in Phase 10 |
 | UI-002 | Menu selection, item list with Edit / Sold Out / Hide-Show per item [11, 25] | 8 | Not Started | |
 | UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Not Started | |
 | UI-004 | Edits update output immediately, no publish step [11] | 8 | Not Started | |
@@ -118,10 +123,10 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Not Started | |
 | OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Not Started | |
 | OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Not Started | |
-| OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Not Started | |
+| OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Verified | Global Ctrl+Shift+F12 stopped output with another app focused and when output covered the operator window |
 | OPS-006 | App always starts live, not blacked out [D-5] | 10 | Not Started | |
-| OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Not Started | |
-| OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | Not Started | |
+| OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Verified | Output on the same display as the operator window: warning shown, then Ctrl+Shift+F12 recovered; also Stop button and Esc on the focused output window |
+| OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | In Progress | LIVE, STOPPED, NO DISPLAY done in Phase 3; BLACKOUT with Phase 10 |
 
 ## Persistence (PERSIST)
 | ID | Requirement | Phase | Status | Evidence |
@@ -144,7 +149,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | REL-001 | Invalid config: no crash, explain, prevent invalid rendering [22] | 12 | Not Started | |
 | REL-002 | Unhandled UI exception is logged and the operator window survives [22, D-1] | 1 | Implemented | Handler installed; not yet provoked in a test |
 | REL-003 | Single instance only [D-1] | 1 | Implemented | Second launch shows "already running" dialog in smoke test |
-| REL-004 | Startup self-check logs display geometry and DPI [D-1] | 3 | Not Started | |
+| REL-004 | Startup self-check logs display geometry and DPI [D-1] | 3 | Verified | Every start logs Windows bounds, window rectangle, client size, WPF DPI, monitor DPI and whether they agree |
 | REL-005 | Stress / edge testing list from spec section 29 [29] | 12 | Not Started | |
 
 ## Packaging (PKG)

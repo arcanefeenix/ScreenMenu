@@ -47,6 +47,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     private string _outputChip = "OUTPUT: NO DISPLAY SELECTED";
     private string? _outputAlert;
     private string? _operatorNote;
+    private bool _outputRunning;
 
     public DisplaysViewModel(IDisplaySource source, AppSettings settings, Action saveSettings, IAppLog log,
         Func<IReadOnlyList<string>, string, bool> confirm, Func<long> operatorWindowMonitor,
@@ -98,6 +99,22 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     }
     public bool HasOperatorNote => !string.IsNullOrEmpty(_operatorNote);
 
+    /// <summary>Raised at the end of every scan so the output controller can react to a lost display.</summary>
+    public event Action? Refreshed;
+
+    public MatchResult OutputMatch => _output;
+
+    /// <summary>Decision for starting output against the displays as of the most recent scan.</summary>
+    public OutputStartDecision EvaluateStart() =>
+        OutputStartPolicy.Evaluate(_output, _current, _operatorWindowMonitor());
+
+    public void SetOutputRunning(bool running)
+    {
+        if (_outputRunning == running) return;
+        _outputRunning = running;
+        UpdateStatus();
+    }
+
     public bool NeedsFallbackConfirmation => _output.Kind == MatchKind.Fallback;
 
     /// <summary>The display to use for LED output, or null if it is unset, missing, or awaiting confirmation.</summary>
@@ -134,6 +151,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(NeedsFallbackConfirmation));
         OnPropertyChanged(nameof(ConfirmedOutputDisplay));
         ClearOutputCommand.RaiseCanExecuteChanged();
+        Refreshed?.Invoke();
     }
 
     private DisplayItemViewModel BuildItem(DisplayInfo d, int number, long windowMonitor)
@@ -182,7 +200,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
                               $"(\"{_output.Display!.FriendlyName}\", {_output.Display.Resolution}). Confirm it is the LED display before output can be used.";
                 break;
             default:
-                OutputChip = "OUTPUT: STOPPED";
+                OutputChip = _outputRunning ? "OUTPUT: LIVE" : "OUTPUT: STOPPED";
                 OutputAlert = null;
                 break;
         }

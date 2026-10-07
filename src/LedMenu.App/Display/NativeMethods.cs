@@ -112,6 +112,32 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern int DisplayConfigGetDeviceInfo(ref DISPLAYCONFIG_TARGET_DEVICE_NAME info);
 
+    public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_SHOWWINDOW = 0x0040;
+    public static readonly IntPtr HWND_TOPMOST = new(-1);
+
+    public const uint MOD_CONTROL = 0x0002, MOD_SHIFT = 0x0004, MOD_NOREPEAT = 0x4000;
+    public const uint VK_F12 = 0x7B;
+    public const int WM_HOTKEY = 0x0312, WM_DPICHANGED = 0x02E0;
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    public static extern bool GetClientRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint vk);
+
+    [DllImport("user32.dll")]
+    public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
+
+    [DllImport("dwmapi.dll")]
+    public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 }

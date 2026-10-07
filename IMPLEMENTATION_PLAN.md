@@ -8,7 +8,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 |---|---|---|
 | 1 Foundation | **Complete** | |
 | 2 Display Discovery | **Complete** (review requested) | |
-| 3 Output Window | Not started | |
+| 3 Output Window | **Complete** (review requested) | |
 | 4 Screen Model | Not started | |
 | 5 Calibration | Not started | **Gate 1: VP2 hardware pixel mapping** |
 | 6 Menu Data (incl. asset import for logos) | Not started | |
@@ -34,11 +34,12 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** mixed-DPI hardware (both monitors are 150%), live hot-plug re-scan, Operator selection in the UI, the confirm-fallback button.
 **Deferred:** moving the operator window to the chosen Operator display (D-10); Identify Screens belongs to Phase 5.
 
-## Phase 3 — Output Window
-**Scope:** borderless output window placed in physical pixels on the chosen display, black canvas, start/stop, non-focus-stealing, DPI self-check logged, status chip wired to real state.
-**Requirements:** OUT-001..004, OUT-007, RENDER-003, RENDER-004, REL-004, UI-001.
-**Completion:** output opens exactly over the selected display at its pixel size; closes without ending the app; pixel read-back test proves one DIP-independent pixel maps to one output pixel at 100%/125%/150%.
-**Tests:** coordinate conversion at several DPI scales, bitmap read-back of a test render.
+## Phase 3 — Output Window (complete)
+**Scope:** borderless output window placed in physical pixels on the chosen display, pure black, Start/Stop, no focus stealing, global Ctrl+Shift+F12, geometry logged on every start, status chip wired to real state, diagnostic self-test.
+**Requirements:** OUT-001..004, OUT-006..012, RENDER-003, RENDER-004, REL-004, OPS-005, OPS-007, DISP-005, DISP-006.
+**Tests:** 25 new unit tests (start policy, geometry comparison, DPI conversions) plus the live and self-test evidence recorded in the Phase 3 report.
+**Not verified:** a DPI different from the operator monitor's (both dev monitors are 150%); display unplugged while output runs; the real Mirackle VP2 (resolution 1920x1080 / 1176x672, crop anchor); output on a display with Windows scaling other than 150%.
+**Gate note:** nothing here counts as VP2 pixel-mapping verification; that remains Gate 1 after Phase 5.
 
 ## Phase 4 — Screen Model
 **Scope:** `Screen`, `ScreenLayout`, validation (bounds, negative, size, overlap warning), add/edit/remove/enable, numeric editor, scaled canvas view with rectangles, layout presets in the data model; draggable handles only if reliable.
