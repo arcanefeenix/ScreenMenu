@@ -35,11 +35,11 @@ public sealed class SaveDebouncer
     public int PendingCount => _pending.Count;
     public bool HasPending(Guid key) => _pending.ContainsKey(key);
 
-    /// <summary>Schedules <paramref name="action"/> after the delay, replacing any earlier request for the same key.</summary>
-    public void Request(Guid key, Action action)
+    /// <summary>Schedules <paramref name="action"/> after the delay (or <paramref name="delay"/>), replacing any earlier request for the same key.</summary>
+    public void Request(Guid key, Action action, TimeSpan? delay = null)
     {
         Cancel(key);
-        var timer = _scheduler.ScheduleOnce(_delay, () => Run(key));
+        var timer = _scheduler.ScheduleOnce(delay ?? _delay, () => Run(key));
         _pending[key] = new Pending { Action = action, Timer = timer };
     }
 

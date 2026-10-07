@@ -31,6 +31,7 @@ public partial class App : Application
     private DisplaysViewModel? _displays;
     private OutputController? _controller;
     private StopHotKey? _hotKey;
+    private readonly ErrorDialogThrottle _errorDialogs = new();
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -253,8 +254,14 @@ public partial class App : Application
         {
             _log?.Error("Unhandled UI exception.", args.Exception);
             args.Handled = true;
-            MessageBox.Show("Something went wrong, but the application is still running.\n\n" + args.Exception.Message,
-                "LED Menu Control", MessageBoxButton.OK, MessageBoxImage.Warning);
+            // an error repeating on a timer must not stack dialogs over a live event: it is logged every time, shown rarely
+            if (!_errorDialogs.TryShow(args.Exception.Message, DateTime.UtcNow)) return;
+            try
+            {
+                MessageBox.Show("Something went wrong, but the application is still running.\n\n" + args.Exception.Message,
+                    "LED Menu Control", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally { _errorDialogs.Dismissed(DateTime.UtcNow); }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             _log?.Error("Fatal unhandled exception.", args.ExceptionObject as Exception);

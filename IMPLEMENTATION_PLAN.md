@@ -93,8 +93,15 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Tests:** 9 new automated tests (real renderer, 2 to 4 screens). Full suite 520 passing; build with warnings as errors clean. No application code changed.
 **Not verified:** two screens on the physical LED wall. Human check: add a second 168x672 screen next to the first (Screens tab), give it a different menu (Menu Library or the screen's menu box), start output and confirm each shows its own menu and pages rotate independently.
 
-## Phases 12–13
-As in the spec (sections 31 and 32): hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
+## Phase 12 — Hardening (complete)
+**Scope:** audit of spec sections 22 and 29, then closing the gaps: per-screen render failure isolation, monitor disconnect rules with safe auto-restore, error-dialog storm protection, autosave retry, file-system failure drills, stress and hostile-input tests, a logging review.
+**Requirements:** SCR-011, LOG-001, REL-001, REL-005, REL-006, REL-007, REL-008 Verified; OUT-006 and REL-002 Implemented.
+**Tests:** 65 new automated tests (11 display-watch rules, 5 dialog throttle, 16 file-system drill cases, 28 stress and hostile-input renders, 2 render-failure isolation, 3 autosave retry). Full suite 585 passing; build with warnings as errors clean. Startup smoke test: no errors or warnings in the log.
+**Changes to the program:** renderer failures isolated per screen; output restarts when its own display returns; failed saves retry; dialog throttling; menu-render problems now also reach the log. The renderer and the persistence layer needed no changes: they passed every hostile case on the first run.
+**Not verified:** a real monitor unplug and replug (OUT-006) and a repeating unhandled exception on screen (REL-002). Human check: with output running on the LED display, unplug its cable (or turn the display off): output should stop with a message and the preview should say so; plug it back and output should return by itself with a message. Nothing should ever appear on your operator display.
+
+## Phase 13
+As in the spec (sections 31 and 32): a self-contained folder publish with operator documentation and a clean-machine test.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.

@@ -7,12 +7,18 @@ using LedMenu.Rendering;
 
 namespace LedMenu.App.Output;
 
+/// <summary>What the frame builder needs from a renderer; lets a failing renderer be simulated in tests.</summary>
+public interface IMenuRenderer
+{
+    MenuRenderResult Get(Menu menu, int width, int height);
+}
+
 /// <summary>
 /// The one place the app turns a menu into pages. The LED output and the operator preview both ask here, so they
 /// always show the same pixels. Results are kept until the menu's content, the screen size or the logo file changes,
 /// so editing a menu (hide, show, price, anything) is reflected on the very next request. UI thread only.
 /// </summary>
-public sealed class MenuRenderService
+public sealed class MenuRenderService : IMenuRenderer
 {
     private readonly FontCatalog _fonts;
     private readonly AssetStore _assets;

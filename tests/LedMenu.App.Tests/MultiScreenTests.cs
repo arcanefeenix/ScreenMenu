@@ -200,6 +200,48 @@ public class MultiScreenTests
         Assert.True(RegionEquals(after, 168, 0, SliceOf(before, 168, 0, 168, 672)), "screen B is untouched");
     });
 
+    private sealed class FailingFor : IMenuRenderer
+    {
+        private readonly IMenuRenderer _inner;
+        private readonly Guid _bad;
+        public FailingFor(IMenuRenderer inner, Guid bad) { _inner = inner; _bad = bad; }
+        public MenuRenderResult Get(Menu menu, int width, int height) =>
+            menu.Id == _bad ? throw new InvalidOperationException("simulated renderer failure") : _inner.Get(menu, width, height);
+    }
+
+    [Fact]
+    public void A_menu_that_fails_to_draw_blacks_out_only_its_own_screen_and_is_reported() => TestSta.Run(() =>
+    {
+        var rig = new Rig();
+        var good = rig.Add(SampleMenus.FestivalFood());
+        var bad = rig.Add(SampleMenus.SoldOutDemo());
+        var builder = new NormalFrameBuilder(id => rig.Menus.TryGetValue(id, out var m) ? m : null,
+            new FailingFor(rig.Render, bad.Id), rig.Clock, () => rig.Now);
+        var screens = new[] { Scr("Good", 0, 0, 168, 672, good), Scr("Bad", 168, 0, 168, 672, bad), Scr("Good too", 400, 0, 336, 672, good) };
+
+        var result = builder.Build(Canvas, CalibrationPlan.Build(screens, Canvas));
+
+        Assert.NotNull(result.Frame);
+        Assert.True(RegionEquals(result.Frame!, 0, 0, rig.Page(good, 168, 672, 0)), "the screen before the failure is intact");
+        Assert.True(RegionBlack(result.Frame!, 168, 0, 168, 672), "the failing screen is black, not garbage");
+        Assert.True(RegionEquals(result.Frame!, 400, 0, rig.Page(good, 336, 672, 0)), "the screen after the failure is intact");
+        Assert.Equal(2, result.Shown.Count);
+        Assert.Contains(result.Warnings, w => w.Contains("could not be drawn") && w.Contains("Bad"));
+    });
+
+    [Fact]
+    public void If_every_menu_fails_the_wall_is_black_and_the_operator_is_told_for_each() => TestSta.Run(() =>
+    {
+        var rig = new Rig();
+        var a = rig.Add(SampleMenus.FestivalFood());
+        var builder = new NormalFrameBuilder(id => rig.Menus.TryGetValue(id, out var m) ? m : null,
+            new FailingFor(rig.Render, a.Id), rig.Clock, () => rig.Now);
+        var screens = new[] { Scr("One", 0, 0, 168, 672, a), Scr("Two", 200, 0, 168, 672, a) };
+        var result = builder.Build(Canvas, CalibrationPlan.Build(screens, Canvas));
+        Assert.Null(result.Frame);
+        Assert.Equal(2, result.Warnings.Count);
+    });
+
     private static PixelBuffer SliceOf(PixelBuffer f, int x, int y, int w, int h)
     {
         var s = new PixelBuffer(w, h);

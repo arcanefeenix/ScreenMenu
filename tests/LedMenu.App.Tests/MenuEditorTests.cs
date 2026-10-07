@@ -41,12 +41,13 @@ internal sealed class MemoryStore : IMenuStore
     public int SaveCount { get; private set; }
     public void ResetCount() => SaveCount = 0;
     public bool FailSaves { get; set; }
+    public int FailedAttempts { get; private set; }
 
     public MenuLoadResult LoadAll() => new(Array.Empty<Menu>(), Array.Empty<MenuLoadIssue>());
 
     public void Save(Menu menu)
     {
-        if (FailSaves) throw new System.IO.IOException("disk full");
+        if (FailSaves) { FailedAttempts++; throw new System.IO.IOException("disk full"); }
         SaveCount++;
         SavedJson[menu.Id] = System.Text.Json.JsonSerializer.Serialize(menu);
     }
@@ -341,6 +342,47 @@ public class MenuEditorTypingTests
         item.ToggleSoldOutCommand.Execute(null);
         Assert.False(rig.Editor.HasMessage);                        // cleared by the next good save
         Assert.True(rig.Store.SavedCopy(rig.Menu.Id).Items.First(i => i.Name == "Fries").SoldOut);
+    }
+
+    [Fact]
+    public void A_failed_save_is_retried_by_itself_once_the_problem_clears()
+    {
+        var rig = new EditorRig();
+        rig.Store.FailSaves = true;
+        rig.Item("Fries").ToggleSoldOutCommand.Execute(null);
+        Assert.True(rig.Editor.HasMessage);
+
+        rig.Clock.Advance(TimeSpan.FromSeconds(6));                 // still failing: tries again, still reports it
+        Assert.True(rig.Editor.HasMessage);
+        rig.Store.FailSaves = false;                                // the disk has room again / the lock is gone
+        rig.Clock.Advance(TimeSpan.FromSeconds(6));
+
+        Assert.False(rig.Editor.HasMessage);
+        Assert.True(rig.Store.SavedCopy(rig.Menu.Id).Items.First(i => i.Name == "Fries").SoldOut);
+    }
+
+    [Fact]
+    public void Closing_the_program_makes_one_last_attempt_at_a_failed_save()
+    {
+        var rig = new EditorRig();
+        rig.Store.FailSaves = true;
+        rig.Item("Fries").ToggleSoldOutCommand.Execute(null);
+        rig.Store.FailSaves = false;
+        rig.Editor.FlushPending();                                  // what exit does
+        Assert.True(rig.Store.SavedCopy(rig.Menu.Id).Items.First(i => i.Name == "Fries").SoldOut);
+    }
+
+    [Fact]
+    public void A_save_that_keeps_failing_does_not_hammer_the_disk_or_the_log()
+    {
+        var rig = new EditorRig();
+        rig.Store.FailSaves = true;
+        rig.Item("Fries").ToggleSoldOutCommand.Execute(null);
+        var before = rig.Store.FailedAttempts;
+        rig.Clock.Advance(TimeSpan.FromSeconds(4));                 // less than the retry delay: no further attempt
+        Assert.Equal(before, rig.Store.FailedAttempts);
+        rig.Clock.Advance(TimeSpan.FromSeconds(2));
+        Assert.Equal(before + 1, rig.Store.FailedAttempts);
     }
 }
 

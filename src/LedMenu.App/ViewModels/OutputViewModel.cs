@@ -45,6 +45,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     private int _frameShown;
     private CanvasSize _canvas = StandInCanvas;
     private PixelBuffer? _blank;
+    private bool _stoppedByDisplayLoss;
     private readonly BlackoutState _blackout = new();
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
@@ -274,7 +275,10 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
             {
                 var result = _builder.Build(canvas, plan);
                 _shown = result.Shown;
-                ContentWarnings = result.Warnings.Count == 0 ? null : string.Join("\n", result.Warnings);
+                var warningText = result.Warnings.Count == 0 ? null : string.Join("\n", result.Warnings);
+                if (warningText != null && warningText != _contentWarnings)
+                    _log.Warn("Output picture problems: " + warningText.Replace("\n", " | "));   // logged when they appear, not every frame
+                ContentWarnings = warningText;
                 Publish(result.Frame, canvas, plan.Drawn);
             }
             catch (Exception ex)
@@ -365,6 +369,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     public void Start()
     {
         if (_isRunning) return;
+        _stoppedByDisplayLoss = false;
 
         _displays.Refresh();                 // decide against the displays as they are right now
         var decision = _displays.EvaluateStart();
@@ -395,6 +400,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
 
     public void Stop(string reason)
     {
+        _stoppedByDisplayLoss = false;      // a stop the operator asked for is never undone by itself
         if (!_isRunning) return;
         _controller.Stop(reason);
     }
@@ -428,6 +434,15 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     {
         if (!_isRunning)
         {
+            // the same display came back after output was lost with it: start again, but only if no prompt is needed
+            if (_stoppedByDisplayLoss && OutputDisplayWatch.ShouldRestore(true, _displays.EvaluateStart()))
+            {
+                _log.Info("The LED output display is back; restoring output.");
+                Start();
+                if (_isRunning) Message = "The LED output display came back, so output was restored automatically.";
+                return;
+            }
+
             // the preview follows the best known canvas size
             if (CurrentCanvas() != _canvas) RenderFrame();
             else OnPropertyChanged(nameof(CanvasDescription));
@@ -435,22 +450,23 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         }
 
         var match = _displays.OutputMatch;
-        if (match.Kind != MatchKind.Exact || match.Display is null)
+        switch (OutputDisplayWatch.WhileRunning(match, _controller.Display))
         {
-            _log.Warn("LED output display is no longer available; stopping output.");
-            Stop("The LED output display was disconnected or changed");
-            Message = "LED output was stopped because the output display is no longer available. " +
-                      "It was not moved to another display.";
-            return;
-        }
+            case DisplayChangeAction.Stop:
+                _log.Warn("LED output display is no longer available; stopping output.");
+                Stop("The LED output display was disconnected or changed");
+                _stoppedByDisplayLoss = true;       // set after Stop, which clears it for operator stops
+                Message = "LED output was stopped because the output display is no longer available. " +
+                          "It was not moved to another display. If the same display comes back, output restarts by itself.";
+                break;
 
-        var cur = _controller.Display;
-        var now = match.Display;
-        if (cur is not null && (cur.X != now.X || cur.Y != now.Y || cur.Width != now.Width || cur.Height != now.Height))
-        {
-            _log.Info($"LED output display changed geometry ({cur.Width}x{cur.Height} -> {now.Width}x{now.Height}); repositioning.");
-            _controller.Reposition(now);
-            RenderFrame();
+            case DisplayChangeAction.Reposition:
+                var cur = _controller.Display!;
+                var now = match.Display!;
+                _log.Info($"LED output display changed geometry ({cur.Width}x{cur.Height} -> {now.Width}x{now.Height}); repositioning.");
+                _controller.Reposition(now);
+                RenderFrame();
+                break;
         }
     }
 }

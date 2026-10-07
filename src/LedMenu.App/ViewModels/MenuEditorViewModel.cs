@@ -368,6 +368,9 @@ public sealed class MenuEditorViewModel : ObservableObject
         _saver.Immediate(menu.Id, () => SaveAndAnnounce(menu));
     }
 
+    /// <summary>How long to wait before trying again after a save failed (disk full, file locked by another program).</summary>
+    public static readonly TimeSpan SaveRetryDelay = TimeSpan.FromSeconds(5);
+
     private void SaveAndAnnounce(Menu menu)
     {
         try
@@ -378,7 +381,9 @@ public sealed class MenuEditorViewModel : ObservableObject
         catch (Exception ex)
         {
             _log.Error($"Could not save menu \"{menu.Name}\".", ex);
-            Message = $"The menu could not be saved: {ex.Message}. Your changes are still on screen; try again or check the disk.";
+            Message = $"The menu could not be saved: {ex.Message}. Your changes are still on screen; saving will be retried every few seconds and when you close the program.";
+            // keep trying: the edit is still in memory, and closing the program flushes this pending retry once more
+            _saver.Request(menu.Id, () => SaveAndAnnounce(menu), SaveRetryDelay);
         }
         _contentChanged(menu);
         Inspect(menu);

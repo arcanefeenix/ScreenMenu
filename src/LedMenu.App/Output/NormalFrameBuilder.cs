@@ -1,6 +1,7 @@
 using LedMenu.Core.Calibration;
 using LedMenu.Core.Layout;
 using LedMenu.Core.Menus;
+using LedMenu.Rendering;
 using LedMenu.Core.Screens;
 
 namespace LedMenu.App.Output;
@@ -15,15 +16,16 @@ public sealed record NormalFrameResult(
 /// Builds the "Normal Output" picture: a black canvas with each assigned menu's current page placed at its screen.
 /// This is the one place that decides it, for the LED output and for the operator's preview alike.
 /// Screens with no menu, a missing menu, or errors stay black. Every page is the screen's own pixel size.
+/// A menu that throws while drawing blacks out its own screen only and is reported as a warning.
 /// </summary>
 public sealed class NormalFrameBuilder
 {
     private readonly Func<Guid, Menu?> _findMenu;
-    private readonly MenuRenderService _render;
+    private readonly IMenuRenderer _render;
     private readonly PageClock _clock;
     private readonly Func<TimeSpan> _now;
 
-    public NormalFrameBuilder(Func<Guid, Menu?> findMenu, MenuRenderService render, PageClock clock, Func<TimeSpan> now)
+    public NormalFrameBuilder(Func<Guid, Menu?> findMenu, IMenuRenderer render, PageClock clock, Func<TimeSpan> now)
     {
         _findMenu = findMenu;
         _render = render;
@@ -42,7 +44,17 @@ public sealed class NormalFrameBuilder
         {
             if (s.MenuId is not { } menuId || _findMenu(menuId) is not { } menu) continue;
 
-            var result = _render.Get(menu, s.Width, s.Height);
+            MenuRenderResult result;
+            try
+            {
+                result = _render.Get(menu, s.Width, s.Height);
+            }
+            catch (Exception ex)
+            {
+                // one menu that cannot be drawn blacks out only its own screen; every other screen carries on
+                warnings.Add($"Screen {s.Number} \"{s.Name}\" is black because menu \"{menu.Name}\" could not be drawn: {ex.Message}");
+                continue;
+            }
             foreach (var p in result.Problems) warnings.Add($"{menu.Name}: {p.Message}");
 
             var page = _clock.PageFor(s.Id, result.PageCount, PageClock.Period(menu.Theme.PageSeconds), _now());
