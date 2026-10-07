@@ -33,6 +33,33 @@ public class JsonFileStoreTests : IDisposable
     }
 
     [Fact]
+    public void Display_identities_round_trip()
+    {
+        var output = new LedMenu.Core.Display.DisplayIdentity
+        {
+            DevicePath = @"\\?\DISPLAY#MIR0001#5&1a2b&0&UID256#{e6f07b5f}",
+            FriendlyName = "Mirackle VP2", DeviceName = @"\\.\DISPLAY2",
+            X = 1920, Y = 0, Width = 1920, Height = 1080,
+        };
+        Store().Save(new AppSettings { OutputDisplay = output });
+        var back = Store().Load().Value;
+        Assert.Null(back.OperatorDisplay);
+        Assert.Equal(output.DevicePath, back.OutputDisplay!.DevicePath);
+        Assert.Equal(1920, back.OutputDisplay.X);
+        Assert.Equal("Mirackle VP2", back.OutputDisplay.FriendlyName);
+    }
+
+    [Fact]
+    public void Phase1_settings_file_without_display_fields_still_loads()
+    {
+        Directory.CreateDirectory(_root);
+        File.WriteAllText(FilePath, "{ \"SchemaVersion\": 1, \"LastStartUtc\": \"2026-10-07T15:09:15Z\" }");
+        var r = Store().Load();
+        Assert.Equal(LoadStatus.Ok, r.Status);
+        Assert.Null(r.Value.OutputDisplay);
+    }
+
+    [Fact]
     public void Second_save_backs_up_previous_good_file()
     {
         var s = Store();

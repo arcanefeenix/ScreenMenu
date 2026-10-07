@@ -1,3 +1,5 @@
+using LedMenu.Core.Display;
+
 namespace LedMenu.Core.Models;
 
 /// <summary>Application-level settings. Display, screen and menu data live in their own files.</summary>
@@ -9,6 +11,12 @@ public sealed class AppSettings
 
     /// <summary>UTC time of the last successful startup; useful when diagnosing an event installation.</summary>
     public DateTime? LastStartUtc { get; set; }
+
+    /// <summary>The display the operator works on. Null until chosen.</summary>
+    public DisplayIdentity? OperatorDisplay { get; set; }
+
+    /// <summary>The display connected to the LED controller. Null until chosen; never auto-replaced.</summary>
+    public DisplayIdentity? OutputDisplay { get; set; }
 
     /// <summary>Returns null when valid, otherwise a human-readable problem description.</summary>
     public static string? Validate(AppSettings? settings)

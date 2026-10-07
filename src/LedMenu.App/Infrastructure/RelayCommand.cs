@@ -1,4 +1,4 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 
 namespace LedMenu.App.Infrastructure;
 
@@ -19,6 +19,9 @@ public sealed class RelayCommand : ICommand
         remove => CommandManager.RequerySuggested -= value;
     }
 
+    public void RaiseCanExecuteChanged() => CommandManager.InvalidateRequerySuggested();
+
     public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
     public void Execute(object? parameter) => _execute();
 }
+

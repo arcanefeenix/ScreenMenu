@@ -1,5 +1,7 @@
 using System.Threading;
 using System.Windows;
+using System.Windows.Interop;
+using LedMenu.App.Display;
 using LedMenu.App.ViewModels;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Models;
@@ -13,6 +15,7 @@ public partial class App : Application
     private FileLog? _log;
     private JsonFileStore<AppSettings>? _settingsStore;
     private AppSettings _settings = new();
+    private DisplaysViewModel? _displays;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -49,12 +52,34 @@ public partial class App : Application
         var notice = load.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure
             ? load.Message : null;
 
-        MainWindow = new MainWindow { DataContext = new MainViewModel(paths.Root, version, notice) };
-        MainWindow.Show();
+        var window = new MainWindow();
+        MainWindow = window;
+        window.Show();
+
+        // Built after Show() so the operator window's current monitor is known to the display list.
+        _displays = new DisplaysViewModel(
+            new Win32DisplaySource(_log), _settings, SaveSettings, _log,
+            confirm: ConfirmSelection,
+            operatorWindowMonitor: () => Win32DisplaySource.MonitorOfWindow(new WindowInteropHelper(window).Handle),
+            identify: (display, number) => new IdentifyWindow(display, number, TimeSpan.FromSeconds(4)).Show());
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays);
     }
+
+    private void SaveSettings()
+    {
+        try { _settingsStore?.Save(_settings); }
+        catch (Exception ex) { _log?.Error("Could not save settings.", ex); }
+    }
+
+    private bool ConfirmSelection(IReadOnlyList<string> warnings, string question) =>
+        MessageBox.Show(
+            string.Join("\n\n", warnings.Select(w => "• " + w)) + "\n\n" + question,
+            "Confirm display selection", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+        == MessageBoxResult.Yes;
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _displays?.Dispose();
         _log?.Info("Application shutdown.");
         if (_singleInstance != null)
         {

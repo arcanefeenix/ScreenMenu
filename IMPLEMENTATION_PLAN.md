@@ -7,7 +7,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | Phase | Status | Gate |
 |---|---|---|
 | 1 Foundation | **Complete** | |
-| 2 Display Discovery | Not started | |
+| 2 Display Discovery | **Complete** (review requested) | |
 | 3 Output Window | Not started | |
 | 4 Screen Model | Not started | |
 | 5 Calibration | Not started | **Gate 1: VP2 hardware pixel mapping** |
@@ -26,11 +26,13 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Done:** `Core` (log, `AppSettings`), `Persistence` (`AppPaths`, `JsonFileStore<T>`), `App` (shell, single instance, exception handlers, PerMonitorV2 manifest), 20 passing tests.
 **Not done in this phase:** the exception handler and the recovery banner have not been exercised in the live UI.
 
-## Phase 2 — Display Discovery
-**Scope:** enumerate monitors (Win32 `EnumDisplayMonitors`, device path), per-monitor DPI, select Operator and Output displays, persist identity, safe handling of a missing output, warn when output equals the operator display.
-**Requirements:** DISP-001..007.
-**Completion:** displays listed with resolution and DPI in the UI; selection persists across restart; missing display leaves output disabled with a visible alert.
-**Tests:** display matching (device path, then bounds fallback), selection persistence, missing-display decision logic, using an injectable display source.
+## Phase 2 — Display Discovery (complete)
+**Scope:** enumerate monitors through Win32 (`EnumDisplayMonitors`, per-monitor DPI, display-configuration API for friendly name and stable device path), choose Operator and LED Output displays, persist identity, handle a missing output safely, warn on risky choices, Identify Displays, automatic re-scan.
+**Requirements:** DISP-001..011.
+**Done:** `Core/Display` (`DisplayInfo`, `DisplayIdentity`, `DisplayMatcher`, `SelectionPolicy`), `App/Display` (`Win32DisplaySource`, `IdentifyWindow`), `DisplaysViewModel`, Displays screen with identity details and tags, status chip wired to display state.
+**Tests:** 25 new unit tests (matching, renumbering, ordering, DPI scale, selection policy, settings round trip, Phase 1 file compatibility), plus live checks on this two-monitor PC.
+**Not verified:** mixed-DPI hardware (both monitors are 150%), live hot-plug re-scan, Operator selection in the UI, the confirm-fallback button.
+**Deferred:** moving the operator window to the chosen Operator display (D-10); Identify Screens belongs to Phase 5.
 
 ## Phase 3 — Output Window
 **Scope:** borderless output window placed in physical pixels on the chosen display, black canvas, start/stop, non-focus-stealing, DPI self-check logged, status chip wired to real state.

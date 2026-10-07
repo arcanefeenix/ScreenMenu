@@ -19,13 +19,17 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Display discovery (DISP)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| DISP-001 | Enumerate Windows displays [6] | 2 | Not Started | |
-| DISP-002 | Operator selects LED Output Display and Operator Display [6] | 2 | Not Started | |
-| DISP-003 | Detect each display's pixel resolution and DPI [7, 16] | 2 | Not Started | |
-| DISP-004 | Persist selection with enough identity to restore it (device path, bounds fallback) [6] | 2 | Not Started | |
-| DISP-005 | If saved output display is missing: output disabled, operator alerted, can choose another; never fullscreen on the operator's monitor [6, 22] | 2 | Not Started | |
-| DISP-006 | Operator always retains control [6] | 2 | Not Started | |
-| DISP-007 | Warn before choosing the operator's own display as output [D-1] | 2 | Not Started | |
+| DISP-001 | Enumerate Windows displays [6] | 2 | Verified | Real PC: 2 displays listed with friendly name, ID, position; log shows detection |
+| DISP-002 | Operator selects LED Output Display and Operator Display [6] | 2 | Implemented | LED output selection verified end to end (select, persist, restart). Operator selection implemented and unit-tested but not exercised in the live UI; it is a remembered label only, the window is not moved (D-10) |
+| DISP-003 | Detect each display's pixel resolution and DPI [7, 16] | 2 | Implemented | Real PC: 3840×2160 at 150% shown for both. Verified only with identical scaling on both monitors; mixed-DPI hardware check still outstanding (conversion logic is unit-tested) |
+| DISP-004 | Persist selection with enough identity to restore it (device path, bounds fallback) [6] | 2 | Verified | 14 unit tests on matching/persistence; live restart restored LED output as "OUTPUT: STOPPED / LED OUTPUT" |
+| DISP-005 | If saved output display is missing: output disabled, operator alerted, can choose another; never auto-substitute [6, 22] | 2 | Implemented | Live test with a saved display that is not connected: chip "OUTPUT: NO DISPLAY", alert names it, saved identity untouched, no other display selected. The start-output refusal itself is enforced in Phase 3 |
+| DISP-006 | Operator always retains control [6] | 2 | Implemented | Nothing fullscreen exists yet; becomes verifiable in Phase 3 |
+| DISP-007 | Warn and require confirmation before choosing the operator's own / primary / only display as output [D-1] | 2 | Verified | Policy unit tests; live test: choosing the primary display raised the confirmation dialog and saved nothing while it was open |
+| DISP-008 | Identify Displays: temporary large number + name on each monitor (non-fullscreen, no focus steal, auto-closes) | 2 | Verified | Live test: 640×360 label centered on both monitors including the one at negative coordinates, closed itself after 4 s |
+| DISP-009 | UI shows number, name, resolution, scaling, position, Windows name, device ID, and tags WINDOWS PRIMARY / OPERATOR DISPLAY / OPERATOR WINDOW IS HERE / LED OUTPUT | 2 | Verified | Screenshot of the running app |
+| DISP-010 | Re-scan automatically when monitors are connected/disconnected (debounced) | 2 | Implemented | Hooked to the Windows display-change event; not exercised because no monitor could be unplugged during testing |
+| DISP-011 | A display whose Windows device ID changed but which has the same name, size and position is offered only after the operator confirms it [D-11] | 2 | Implemented | Matcher unit tests (single match, ambiguity, different resolution); confirm button not exercised live |
 
 ## Output window (OUT)
 | ID | Requirement | Phase | Status | Evidence |
@@ -96,7 +100,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Operator UI (UI)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Shell launches; status chip shows OUTPUT: STOPPED. Becomes Verified when status reflects real state (Phase 3) |
+| UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Chip now reflects display state (NO DISPLAY SELECTED / NO DISPLAY / CONFIRM DISPLAY / STOPPED). LIVE and BLACKOUT states arrive in Phases 3 and 10 |
 | UI-002 | Menu selection, item list with Edit / Sold Out / Hide-Show per item [11, 25] | 8 | Not Started | |
 | UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Not Started | |
 | UI-004 | Edits update output immediately, no publish step [11] | 8 | Not Started | |
@@ -134,7 +138,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Reliability and logging (REL / LOG)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| LOG-001 | Log startup/shutdown, display events, config load/recovery, assignment changes, renderer failures [23] | 1 | In Progress | Startup, settings load and recovery logged; others arrive with their features |
+| LOG-001 | Log startup/shutdown, display events, config load/recovery, assignment changes, renderer failures [23] | 1 | In Progress | Startup, settings load/recovery, display detection, output selected/lost/regained logged (changes only, no flooding); assignments and renderer failures arrive later |
 | LOG-002 | Log is useful for event troubleshooting; no per-frame noise [23] | 1 | Implemented | Daily rolling file, 14-day retention |
 | LOG-003 | Logging never throws into the app [22] | 1 | Verified | FileLog test with unwritable directory |
 | REL-001 | Invalid config: no crash, explain, prevent invalid rendering [22] | 12 | Not Started | |
