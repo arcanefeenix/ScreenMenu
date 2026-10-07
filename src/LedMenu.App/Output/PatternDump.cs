@@ -2,7 +2,11 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using LedMenu.Core.Calibration;
+using LedMenu.Core.Logging;
+using LedMenu.Core.Menus;
 using LedMenu.Core.Screens;
+using LedMenu.Persistence;
+using LedMenu.Rendering;
 
 namespace LedMenu.App.Output;
 
@@ -26,6 +30,36 @@ public static class PatternDump
             Save(Path.Combine(folder, $"Screen{s.Number}_calibration_{s.Width}x{s.Height}.png"), ScreenPatterns.Calibration(s));
             Save(Path.Combine(folder, $"Screen{s.Number}_identify_{s.Width}x{s.Height}.png"), ScreenPatterns.Identify(s));
         }
+    }
+
+    /// <summary>
+    /// Renders every menu to PNG files, one per page, at its assigned screen's size (or 336x672). With a logo file, each menu
+    /// is rendered a second time with that logo so the branded layout can be reviewed. Returns the number of files written.
+    /// </summary>
+    public static int WriteMenus(string folder, IEnumerable<Menu> menus, ScreenLayout layout, FontCatalog fonts,
+        AssetStore assets, string? logoFile, IAppLog log)
+    {
+        Directory.CreateDirectory(folder);
+        var written = 0;
+        foreach (var menu in menus)
+        {
+            var screen = layout.Screens.FirstOrDefault(s => s.AssignedMenuId == menu.Id && s.Enabled && s.Width > 0 && s.Height > 0);
+            int w = screen?.Width ?? 336, h = screen?.Height ?? 672;
+            var safe = new string(menu.Name.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+
+            var plain = MenuRenderer.Render(menu, w, h, fonts, assets.Resolve(menu.LogoAsset));
+            for (var i = 0; i < plain.PageCount; i++) { Save(Path.Combine(folder, $"{safe}_p{i + 1}of{plain.PageCount}.png"), plain.Pages[i]); written++; }
+            foreach (var p in plain.Problems) log.Warn($"{menu.Name}: {p.Message}");
+
+            if (logoFile != null && File.Exists(logoFile))
+            {
+                var branded = System.Text.Json.JsonSerializer.Deserialize<Menu>(System.Text.Json.JsonSerializer.Serialize(menu))!;
+                branded.LogoAsset = Path.GetFileName(logoFile);
+                var withLogo = MenuRenderer.Render(branded, w, h, fonts, logoFile);
+                for (var i = 0; i < withLogo.PageCount; i++) { Save(Path.Combine(folder, $"{safe}_WITHLOGO_p{i + 1}of{withLogo.PageCount}.png"), withLogo.Pages[i]); written++; }
+            }
+        }
+        return written;
     }
 
     private static void Save(string path, PixelBuffer frame)

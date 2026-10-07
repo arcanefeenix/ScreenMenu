@@ -38,7 +38,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | OUT-002 | Canvas uses the actual pixel size of the selected display [7] | 3 | Verified | Gate 1 (user report, 2026-10-07, 7x2 wall = 1176x672, VP2 given 1920x1080, scaling off): the output canvas was the Windows display's actual 1920x1080 and was received by the VP2 as such |
 | OUT-003 | Unused canvas is pure black [7] | 3 | Implemented | Interior capture: 8,282,404 of 8,282,404 pixels exactly #000000 on the dev display. Not yet checked on the VP2 |
 | OUT-004 | Start / Stop output without closing the app [27] | 3 | Verified | Start, Stop, Start, Stop run twice by self-test and again via the UI; settings file byte-identical afterwards |
-| OUT-005 | Output window uses the same renderer as preview [5, 15] | 9 | Not Started | |
+| OUT-005 | Output window uses the same renderer as preview [5, 15] | 9 | Verified | Output window shows the same MenuRenderService pages as the preview; live capture equals the renderer PNGs exactly |
 | OUT-006 | Monitor disconnect: no crash, operator notified, no hijacking another display, reconnects only to the same display [22] | 12 | In Progress | Output stops (not redirected) if the display disappears, and repositions if its size changes; logic written but not exercised because no monitor could be unplugged |
 | OUT-007 | Output never steals keyboard focus from the operator window [27, D-1] | 3 | Verified | Output window IsActive=false after start, the operator window stayed foreground; Esc sent while focus was elsewhere did nothing |
 | OUT-008 | Start is refused unless the saved display is matched by device ID and connected right now; never redirected [D-14] | 3 | Verified | Unit tests (8) and live missing-display test |
@@ -94,10 +94,10 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | MENU-002 | Item: ID, Name, Description, Price (free text), Category, Visible, Sold Out, Featured, Sort Order [10] | 6 | Verified | Item has Id, Name, Description, Price, Category, Visible, Sold Out, Featured, Sort Order; all round-trip exactly, including prices such as "$12 / $16", "Market Price", "3 for $10" and non-ASCII text |
 | MENU-003 | Category: ID, Name, Visible, Sort Order [13] | 6 | Verified | Category has Id, Name, Visible, Sort Order; round-trip and ordering tests |
 | MENU-004 | Deterministic ordering of items and categories [29] | 6 | Verified | Order is SortOrder then stored position, so it is deterministic; add, move, remove and category moves keep sequences clean (unit tests) |
-| MENU-005 | Hidden items are removed and content reflows [12] | 6 | Implemented | MenuView leaves out hidden items and items of hidden categories, drops a category header when nothing in it is visible, and puts items back in place when unhidden (unit tests). The visual reflow itself is drawn in Phase 7 |
+| MENU-005 | Hidden items are removed and content reflows [12] | 6 | Verified | A hidden item or category produces exactly the page of a menu without it (pixel-identical); unhiding restores the original pages exactly |
 | MENU-006 | Sold Out and Hidden are independent states; treatment is not stored in data [12] | 6 | Verified | Sold out and hidden are separate flags; sold-out items stay in the view, flagged; the data holds no treatment (unit tests) |
 | MENU-007 | Optional logo per menu, imported into app-managed assets [D-2] | 6 | Verified | Logo chosen through the real file dialog was copied into the app assets folder as a content-hash name, kept after the original was deleted (test), reused when the same picture is imported twice, and restored after restart. PNG/JPEG/BMP/GIF only, decided from content, 20 MB limit. Drawing the logo is Phase 7 |
-| MENU-008 | Missing/corrupt logo falls back safely and alerts the operator [22, D-2] | 6 | Implemented | A missing logo is detected and reported on the menu card (unit tests); the text-header fallback is drawn in Phase 7 |
+| MENU-008 | Missing/corrupt logo falls back safely and alerts the operator [22, D-2] | 6 | Verified | Missing logo: menu renders without it, space reclaimed (pixel-identical to a menu with no logo), warning shown on the menu card, preview and output panel. Unreadable logo likewise. Live: deleted the logo file while output ran and the wall and warning updated within a page period |
 | MENU-009 | A screen shows a menu by id; assignment is independent of the layout, two screens may share a menu, and a missing menu is flagged but never cleared [D-31] | 6 | Verified | Validator tests; live: assigned, restarted, deleted the menu, the screen was flagged and screens.json kept the id |
 | MENU-010 | One file per menu with atomic save, backups and recovery; one damaged file cannot affect the others and is never replaced by an empty menu [D-28] | 6 | Verified | Store tests and live: backed-up menu restored with a notice; a damaged menu with no backup was reported and kept as .corrupt |
 | MENU-011 | Deleting a menu moves its file to a trash folder and asks first, naming the screens that use it [D-28, D-31] | 6 | Verified | Store tests; live dialog accepted with Y, file in trash |
@@ -109,21 +109,29 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Rendering (RENDER)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| RENDER-001 | One authoritative pipeline for preview and output [15, 28] | 7 | Not Started | |
-| RENDER-002 | Render at each Screen's native W×H, then place into the canvas [16] | 7 | Not Started | |
+| RENDER-001 | One authoritative pipeline for preview and output [15, 28] | 7 | Verified | One pipeline: MenuLayoutEngine then MenuRenderer, called through MenuRenderService by both the LED output and the Menus-tab preview. Live: the real monitor matched the renderer's own PNG pages with 0 differing pixels (4 checks) |
+| RENDER-002 | Render at each Screen's native W×H, then place into the canvas [16] | 7 | Verified | Each page is drawn at the screen's own size (336x672 verified; other sizes tested) and placed with ComposeScreens at the screen's X,Y; live capture matched exactly at (0,0) and (336,0) |
 | RENDER-003 | 1 rendered pixel = 1 output pixel regardless of Windows DPI scaling [16] | 3 | Implemented | Output window reads its own DPI (WPF 144 = Windows 144 on the dev monitor). Gate 1 mapping was exactly 1:1, but the VP2 monitor scale used was not recorded, and a monitor with different scaling from the operator monitor has not been tested |
 | RENDER-004 | Pixel-snapped placement, nearest-neighbor, no blur [16] | 3 | Verified | Gate 1 (user report, 2026-10-07, 7x2 wall = 1176x672, VP2 given 1920x1080, scaling off): pixel-level calibration details remained crisp (no blur from the PC side or the VP2) |
-| RENDER-005 | First template tuned for 336×672 portrait; large type, high contrast [14] | 7 | Not Started | |
-| RENDER-006 | Multiple templates possible later [14, 34] | 7 | Not Started | |
-| RENDER-007 | Category headers supported [13] | 7 | Not Started | |
-| RENDER-008 | Sold-out treatment chosen by template [12] | 7 | Not Started | |
-| RENDER-009 | Never draw text outside screen bounds [14] | 7 | Not Started | |
-| RENDER-010 | Paginate overflow; header/logo repeat; categories not orphaned; recompute on changes [D-3] | 7 | Not Started | |
-| RENDER-011 | Per-menu page duration; rotation timer in output; preview follows [D-3] | 7 | Not Started | |
-| RENDER-012 | Warn when content cannot fit even paginated; never shrink below minimum size [14, D-3] | 7 | Not Started | |
-| RENDER-013 | Bundled, theme-selectable font loaded from file; fallback with warning [D-2] | 7 | Not Started | |
-| RENDER-014 | Last-good frame retained if a render throws; operator alerted [22, D-1] | 7 | Not Started | |
-| RENDER-015 | **Gate 2: LED readability confirmed on real panels** [32] | 7 | Not Started | Human verification required |
+| RENDER-005 | First template tuned for 336×672 portrait; large type, high contrast [14] | 7 | Implemented | portrait-basic template built for 336x672 (title, optional logo, subtitle, category bars, names, prices, descriptions, sold out, featured, pagination). Readability on the LED is NOT yet judged: Gate 2 |
+| RENDER-006 | Multiple templates possible later [14, 34] | 7 | Implemented | Menu.Theme.TemplateId selects the template; the layout engine and renderer are separate from the template constants; an unknown template falls back with a warning. Only one template exists |
+| RENDER-007 | Category headers supported [13] | 7 | Verified | Category headings drawn as full-width amber bars, repeated with (CONT.) when a category continues; hidden categories leave no heading (unit and pixel tests) |
+| RENDER-008 | Sold-out treatment chosen by template [12] | 7 | Implemented | Sold out is a template decision: dimmed, struck through, price replaced by a red SOLD OUT badge, item keeps its place and height. Behavior verified (unit and pixel tests); how it looks from a distance is Gate 2 |
+| RENDER-009 | Never draw text outside screen bounds [14] | 7 | Verified | Text is measured with the same font engine that draws it; nothing is drawn past the page (every op checked inside the page; pixel scan of margins; drawn ink within measured box) |
+| RENDER-010 | Paginate overflow; header/logo repeat; categories not orphaned; recompute on changes [D-3] | 7 | Verified | Pagination from measured heights: items never split, heading never alone at a page bottom, (CONT.) headings, hidden things take no space, header repeated, recalculated on every render. Sweep tests over hundreds of layouts; live: 3-page menu on the real monitor |
+| RENDER-011 | Per-menu page duration; rotation timer in output; preview follows [D-3] | 7 | Verified | Per-menu page duration (Theme.PageSeconds, default 10, clamped 2 to 120), one-page menus never rotate; live: pages changed at 2 s, 12 s, 22 s, 32 s (1, 2, 3, back to 1). No editor UI for the duration yet (Phase 8); changing it in the menu file works |
+| RENDER-012 | Warn when content cannot fit even paginated; never shrink below minimum size [14, D-3] | 7 | Verified | An item that cannot fit an empty page at the minimum sizes is reported and not drawn (unit and pixel tests); sizes are never reduced to fit more on a page |
+| RENDER-013 | Bundled, theme-selectable font loaded from file; fallback with warning [D-2] | 7 | Verified | Lato bundled from files; the menu theme names the family; an unknown family or missing Fonts folder falls back with a warning and still renders (tests). Choosing the font in the UI arrives with the editor |
+| RENDER-014 | Last-good frame retained if a render throws; operator alerted [22, D-1] | 7 | Implemented | If drawing a menu throws, the previous picture stays on the wall, the error is logged and the operator is told. Safety net is in place; no failing menu could be provoked to exercise it |
+| RENDER-015 | **Gate 2: LED readability confirmed on real panels** [32] | 7 | In Progress | **Gate 2.** Template built and documented in GATE2_LED_READABILITY.md; waiting for the physical LED test and feedback |
+| RENDER-016 | A logo keeps its proportions, is never stretched, is centered, fits a 320x64 box, and repeats on every page [D-33] | 7 | Verified | Unit tests for wide, tall and square logos; pixel tests measured the drawn logo and its aspect |
+| RENDER-017 | With no logo the logo space is reclaimed, not left blank | 7 | Verified | Layout tests (content moves up exactly 70 px) and pixel equality with a never-branded menu |
+| RENDER-018 | Each text role has an explicit minimum size; preferred sizes are always used, the minimum only as a last resort for a single item [D-33] | 7 | Verified | Typography tests; test that only an item that cannot otherwise fit is drawn at the minimum |
+| RENDER-019 | Featured is a restrained treatment: warm name color and a margin bar, with no change to height, wrapping or pagination [D-33] | 7 | Implemented | Unit and pixel tests show only that item's rows change. How it looks is Gate 2 |
+| RENDER-020 | Page number "n/N" at the bottom right on multi-page menus, off by theme; space reserved only when needed | 7 | Verified | Unit tests, pixel tests, live |
+| RENDER-021 | Problems (missing/unreadable logo, font or template fallback, item overflow) are shown to the operator on the menu card, the preview and the output panel | 7 | Verified | Live: warning appeared on all three |
+| RENDER-022 | Rendering is deterministic: the same menu gives byte-identical pages | 7 | Verified | Tests |
+| RENDER-023 | Menu pages are cached by content signature and re-rendered on any change, including logo file changes | 7 | Verified | Live logo delete changed the wall within one page period |
 
 ## Operator UI (UI)
 | ID | Requirement | Phase | Status | Evidence |
@@ -133,8 +141,8 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Not Started | |
 | UI-004 | Edits update output immediately, no publish step [11] | 8 | Not Started | |
 | UI-005 | Technical settings kept out of the everyday view [24] | 8 | Not Started | |
-| UI-006 | Live preview using the shared renderer [15] | 9 | Not Started | |
-| UI-007 | Scaled preview and 100% pixel preview [15] | 9 | Not Started | |
+| UI-006 | Live preview using the shared renderer [15] | 9 | In Progress | Menus tab has a preview of the exact pages the LED shows; the full live preview of the output canvas is Phase 9 |
+| UI-007 | Scaled preview and 100% pixel preview [15] | 9 | In Progress | Menus-tab preview at 1x (true pixels), 2x or 3x with nearest-neighbor scaling and page stepping; whole-canvas preview is Phase 9 |
 | UI-008 | Operator-visible warnings for overflow / missing assets / errors [14, 22] | 8 | Not Started | |
 | UI-009 | Keyboard shortcuts documented in the UI [26] | 10 | Not Started | |
 | UI-010 | Startup notice banner when data was recovered or reset | 1 | Implemented | Banner bound to load result; shown path verified by unit-level store tests, UI display not yet exercised |

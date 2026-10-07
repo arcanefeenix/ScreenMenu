@@ -11,4 +11,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- Bundled fonts travel with every project that references the renderer (the app and the tests). -->
+  <ItemGroup>
+    <None Include="Fonts\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

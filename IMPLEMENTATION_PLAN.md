@@ -12,7 +12,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 4 Screen Model | **Complete** (review requested) | |
 | 5 Calibration | **Complete** | **Gate 1 PASSED (user-verified)**: VP2 top-left anchored, 1:1, 336x672 Screen at 0,0 verified |
 | 6 Menu Data (incl. asset import for logos) | **Complete** (review requested) | |
-| 7 Menu Renderer (template, pagination, fonts, logo) | Not started | **Gate 2: LED readability** |
+| 7 Menu Renderer (template, pagination, fonts, logo) | **Built and tested; STOPPED at Gate 2** | **Gate 2: LED readability (waiting for the physical test)** |
 | 8 Operator Menu UI | Not started | |
 | 9 Live Preview | Not started | |
 | 10 Blackout and Operational Controls | Not started | |
@@ -60,11 +60,12 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Tests:** 84 new unit tests (ordering, editor operations, view rules, validator, library, assignment, asset rules, file store, asset store) plus live UI and corruption tests.
 **Not done in this phase:** editing categories and items in the UI, autosave debounce (Phase 8); schema migration with a pre-migration backup (first needed when the schema changes); drawing a menu or logo (Phase 7).
 
-## Phase 7 — Menu Renderer
-**Scope:** `ScreenRenderer` producing a native-size bitmap, first 336×672 template, bundled font loading, logo header, category headers, sold-out treatment, pagination and page timer, fit warnings, last-good-frame protection.
-**Requirements:** RENDER-001, 002, 005..014.
-**Tests:** layout tests for empty menu, one item, long name, long description, long price, many items, hidden category, all sold out, page splitting and orphan-header rules.
-**Gate 2:** physical LED readability test; template stays provisional until you give feedback or photos.
+## Phase 7 — Menu Renderer (built; stopped at Gate 2)
+**Scope:** the first 336x672 portrait template, layout and pagination from measured text, bundled font, logo handling, sold-out and featured treatments, one renderer for output and preview, operator problem reporting, rotation of pages, samples for the LED test.
+**Requirements:** RENDER-001, 002, 007, 009..013, 016..018, 020..023, MENU-005, MENU-008, OUT-005 Verified; RENDER-005, 006, 008, 014, 019 Implemented (look and readability wait for Gate 2); RENDER-015 In Progress; UI-006, UI-007 In Progress.
+**Tests:** 125 new automated tests: 78 in Core (text wrapping, page clock, typography, layout, logo box, sold out, featured, long content, pagination boundaries and orphan sweeps, overflow) and 47 with the real font and pixel read-back in the new Rendering.Tests project. Live: the real monitor matched the renderer's PNGs with 0 differing pixels on four captures, pages rotated on the 10 s schedule, and a deleted logo file produced the warning and reclaimed space.
+**Gate 2 (human):** follow `GATE2_LED_READABILITY.md`; photos and notes on type sizes, spacing, hierarchy, sold out, featured, pagination and viewing distance. Phase 8 does not start until you approve the physical LED result.
+**Open design questions for Gate 2:** smoothed versus crisp letters; whether descriptions (14 px) and the page number (12 px) are large enough; whether the header should shrink on later pages; page time; logo box size.
 
 ## Phases 8–13
 As in the spec (sections 31 and 32): operator menu UI, live preview (scaled and 100%), blackout and shortcuts, multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.

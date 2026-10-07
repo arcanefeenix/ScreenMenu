@@ -1,5 +1,9 @@
 using System.Collections.ObjectModel;
 using LedMenu.App.Infrastructure;
+using System.Windows.Threading;
+using LedMenu.App.Output;
+using LedMenu.Core.Calibration;
+using LedMenu.Core.Layout;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Menus;
 using LedMenu.Persistence;
@@ -26,6 +30,40 @@ public sealed class MenuCardViewModel : ObservableObject
         RemoveLogoCommand = new RelayCommand(() => _owner.RemoveLogo(this), () => !string.IsNullOrEmpty(Model.LogoAsset));
         DeleteCommand = new RelayCommand(() => _owner.Delete(this));
     }
+
+    // ---- preview: the same pages the LED shows, drawn at whole-number zoom ----
+    private bool _previewOpen;
+    private PixelBuffer? _previewFrame;
+    private int _zoom = 2;
+    private bool _following = true;
+    private int _pinnedPage;
+    private string _previewStatus = "";
+    private string _previewProblems = "";
+
+    public bool IsPreviewOpen
+    {
+        get => _previewOpen;
+        set { if (Set(ref _previewOpen, value)) _owner.RefreshPreview(this); }
+    }
+    public PixelBuffer? PreviewFrame { get => _previewFrame; set => Set(ref _previewFrame, value); }
+    public int Zoom { get => _zoom; set { if (Set(ref _zoom, Math.Clamp(value, 1, 4))) { OnPropertyChanged(nameof(IsZoom1)); OnPropertyChanged(nameof(IsZoom2)); OnPropertyChanged(nameof(IsZoom3)); } } }
+    public bool IsZoom1 => _zoom == 1;
+    public bool IsZoom2 => _zoom == 2;
+    public bool IsZoom3 => _zoom == 3;
+    public bool Following { get => _following; set { if (Set(ref _following, value)) _owner.RefreshPreview(this); } }
+    public int PinnedPage { get => _pinnedPage; set => Set(ref _pinnedPage, Math.Max(0, value)); }
+    public string PreviewStatus { get => _previewStatus; set => Set(ref _previewStatus, value); }
+    public string PreviewProblems { get => _previewProblems; set { if (Set(ref _previewProblems, value)) OnPropertyChanged(nameof(HasPreviewProblems)); } }
+    public bool HasPreviewProblems => _previewProblems.Length > 0;
+    public int LastPageCount { get; set; } = 1;
+    public int ShownPage { get; set; }
+
+    public RelayCommand PreviousPageCommand => new(() => _owner.StepPreview(this, -1));
+    public RelayCommand NextPageCommand => new(() => _owner.StepPreview(this, +1));
+    public RelayCommand FollowCommand => new(() => Following = true);
+    public RelayCommand Zoom1Command => new(() => Zoom = 1);
+    public RelayCommand Zoom2Command => new(() => Zoom = 2);
+    public RelayCommand Zoom3Command => new(() => Zoom = 3);
 
     public Menu Model { get; }
     public RelayCommand SetLogoCommand { get; }
@@ -110,9 +148,15 @@ public sealed class MenusViewModel : ObservableObject
     private readonly Func<string, string, bool> _confirm;
     private string? _message;
 
+    private readonly MenuRenderService _render;
+    private readonly PageClock _previewClock = new();
+    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    private readonly DispatcherTimer _previewTimer;
+
     public MenusViewModel(MenuLibrary library, AssetStore assets, IAppLog log,
-        Func<string?> pickImage, Func<string, string, bool> confirm)
+        Func<string?> pickImage, Func<string, string, bool> confirm, MenuRenderService render)
     {
+        _render = render;
         _library = library;
         _assets = assets;
         _log = log;
@@ -120,7 +164,10 @@ public sealed class MenusViewModel : ObservableObject
         _confirm = confirm;
 
         NewMenuCommand = new RelayCommand(NewMenu);
-        NewSampleCommand = new RelayCommand(NewSample);
+        AddSampleCommand = new RelayCommand<string>(AddSample);
+        _previewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _previewTimer.Tick += (_, _) => { foreach (var c in Cards.Where(c => c.IsPreviewOpen)) RefreshPreview(c); };
+        _previewTimer.Start();
         DismissMessageCommand = new RelayCommand(() => Message = null);
         Rebuild();
     }
@@ -131,7 +178,16 @@ public sealed class MenusViewModel : ObservableObject
     public ObservableCollection<MenuChoice> Choices { get; } = new();
 
     public RelayCommand NewMenuCommand { get; }
-    public RelayCommand NewSampleCommand { get; }
+    public RelayCommand<string> AddSampleCommand { get; }
+
+    /// <summary>The ready-made sample menus offered for reviewing templates.</summary>
+    public IReadOnlyList<SampleMenuInfo> Samples => SampleMenus.All;
+
+    /// <summary>Size of the first enabled screen showing this menu, if any. The preview uses it so it matches the LED.</summary>
+    public Func<Guid, (int Width, int Height)?> ScreenSizeFor { get; set; } = _ => null;
+
+    /// <summary>Which page of this menu is on the LED output right now, if output is running it.</summary>
+    public Func<Guid, (int Page, int Count)?> LivePageOf { get; set; } = _ => null;
     public RelayCommand DismissMessageCommand { get; }
 
     /// <summary>Names of the screens that point at a menu (supplied once screens exist).</summary>
@@ -168,11 +224,15 @@ public sealed class MenusViewModel : ObservableObject
         Rebuild();
     }
 
-    private void NewSample()
+    private void AddSample(string? key)
     {
-        var sample = SampleMenus.FestivalFood();
-        if (_library.Menus.Any(m => string.Equals(m.Name, sample.Name, StringComparison.OrdinalIgnoreCase)))
-            sample.Name = sample.Name + " (sample)";
+        var info = SampleMenus.All.FirstOrDefault(x => x.Key == key);
+        if (info == null) return;
+        var sample = info.Create();
+        var baseName = sample.Name;
+        var n = 2;
+        while (_library.Menus.Any(m => string.Equals(m.Name, sample.Name, StringComparison.OrdinalIgnoreCase)))
+            sample.Name = $"{baseName} {n++}";
         Guard(() => _library.Add(sample), "add the sample menu");
         Rebuild();
     }
@@ -226,6 +286,48 @@ public sealed class MenusViewModel : ObservableObject
 
         Guard(() => _library.Delete(card.Model.Id), "delete the menu");
         Rebuild();
+    }
+
+    // ---- preview ---------------------------------------------------------------------------
+
+    internal void RefreshPreview(MenuCardViewModel card)
+    {
+        if (!card.IsPreviewOpen) { card.PreviewFrame = null; return; }
+
+        var (w, h) = ScreenSizeFor(card.Model.Id) ?? (336, 672);
+        var result = _render.Get(card.Model, w, h);
+        card.LastPageCount = result.PageCount;
+
+        int page;
+        string mode;
+        if (card.Following)
+        {
+            if (LivePageOf(card.Model.Id) is { } live) { page = live.Page; mode = "following the LED output"; }
+            else
+            {
+                page = _previewClock.PageFor(card.Model.Id, result.PageCount, PageClock.Period(card.Model.Theme.PageSeconds), _clock.Elapsed);
+                mode = "rotating like the LED output will";
+            }
+        }
+        else
+        {
+            page = Math.Clamp(card.PinnedPage, 0, result.PageCount - 1);
+            mode = "held on this page (the LED output is not affected)";
+        }
+        page = Math.Clamp(page, 0, result.PageCount - 1);
+        card.ShownPage = page;
+        card.PreviewFrame = result.Pages[page];
+        card.PreviewStatus = $"{w}\u00D7{h}   Page {page + 1} of {result.PageCount}   ({mode})";
+        card.PreviewProblems = string.Join("\n", result.Problems.Select(p => "\u26A0 " + p.Message));
+    }
+
+    internal void StepPreview(MenuCardViewModel card, int delta)
+    {
+        // browsing pins the preview to a page; the LED output keeps rotating on its own
+        var count = Math.Max(1, card.LastPageCount);
+        card.PinnedPage = ((card.ShownPage + delta) % count + count) % count;
+        card.Following = false;
+        RefreshPreview(card);
     }
 
     // ---- rebuild -------------------------------------------------------------------------

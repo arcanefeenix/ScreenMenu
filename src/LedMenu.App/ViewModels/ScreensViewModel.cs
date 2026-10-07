@@ -195,6 +195,14 @@ public sealed class ScreensViewModel : ObservableObject
     /// <summary>The size screens are validated against, or null if unknown.</summary>
     public CanvasSize? CanvasSizeOrNull => Canvas.Size;
 
+    /// <summary>Width and height of the first enabled, valid screen that shows this menu; null if none does.</summary>
+    public (int Width, int Height)? ScreenSizeForMenu(Guid menuId)
+    {
+        var plan = CalibrationPlan.Build(_layout.Screens, Canvas.Size);
+        var s = plan.Drawn.FirstOrDefault(d => d.MenuId == menuId);
+        return s == null ? null : (s.Width, s.Height);
+    }
+
     /// <summary>Which screens a test pattern may be drawn on right now (valid and enabled), and which were skipped.</summary>
     public CalibrationPlan BuildCalibrationPlan(CanvasSize canvas) => CalibrationPlan.Build(_layout.Screens, canvas);
 

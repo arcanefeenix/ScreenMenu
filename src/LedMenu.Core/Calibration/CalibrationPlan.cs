@@ -26,7 +26,7 @@ public sealed record CalibrationPlan(IReadOnlyList<CalibrationScreen> Drawn, IRe
             if (firstError != null)
                 skipped.Add(new SkippedScreen(i + 1, name, firstError.Message));
             else
-                drawn.Add(new CalibrationScreen(s.Id, i + 1, name, s.X, s.Y, s.Width, s.Height));
+                drawn.Add(new CalibrationScreen(s.Id, i + 1, name, s.X, s.Y, s.Width, s.Height, s.AssignedMenuId));
         }
         return new CalibrationPlan(drawn, skipped);
     }

@@ -32,9 +32,9 @@
         <!-- Header -->
         <DockPanel Grid.Row="0" Margin="16,12">
             <Border DockPanel.Dock="Right" Background="#FF3A3A3A" CornerRadius="4" Padding="12,4">
-                <TextBlock Text="{Binding Displays.OutputChip}" FontWeight="Bold" FontSize="14"/>
+                <TextBlock Foreground="#FFEDEDED" Text="{Binding Displays.OutputChip}" FontWeight="Bold" FontSize="14"/>
             </Border>
-            <TextBlock Text="LED MENU CONTROL" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+            <TextBlock Foreground="#FFEDEDED" Text="LED MENU CONTROL" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
         </DockPanel>
 
         <StackPanel Grid.Row="1">
@@ -44,7 +44,7 @@
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2"
                             Command="{Binding DismissNoticeCommand}"/>
-                    <TextBlock Text="{Binding StartupNotice}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                    <TextBlock Foreground="#FFEDEDED" Text="{Binding StartupNotice}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>
 
@@ -78,16 +78,20 @@
                             Visibility="{Binding IsTestMode, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="{Binding ModeBannerText}" TextWrapping="Wrap" FontWeight="Bold" Foreground="White"/>
                     </Border>
+                    <Border Background="#FF8A5A00" Padding="12,6" Margin="0,6,0,0"
+                            Visibility="{Binding HasContentWarnings, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Foreground="#FFEDEDED" Text="{Binding ContentWarnings}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    </Border>
                     <Border Background="#FF7A1F1F" Padding="12,6" Margin="0,6,0,0"
                             Visibility="{Binding HasSkipped, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{Binding SkippedText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                        <TextBlock Foreground="#FFEDEDED" Text="{Binding SkippedText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
                     </Border>
                     <Border Background="#FF8A5A00" Padding="12,6" Margin="0,10,0,0"
                             Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0"
                                     Command="{Binding DismissMessageCommand}"/>
-                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"/>
                         </DockPanel>
                     </Border>
                 </StackPanel>
@@ -95,7 +99,15 @@
         </StackPanel>
 
         <!-- Displays and Screens (menu editing and preview arrive in later phases) -->
-        <TabControl Grid.Row="2" Margin="16,0" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A">
+        <TabControl Grid.Row="2" Margin="16,0" Background="#FF1E1E1E" BorderBrush="#FF4A4A4A" TextElement.Foreground="#FFEDEDED">
+            <TabControl.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#FFEDEDED"/>
+                </Style>
+                <Style TargetType="CheckBox">
+                    <Setter Property="Foreground" Value="#FFEDEDED"/>
+                </Style>
+            </TabControl.Resources>
             <TabItem Header="Displays">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,10,0,0">
                 <StackPanel DataContext="{Binding Displays}">
@@ -105,7 +117,7 @@
                             <Button Style="{StaticResource ActionButton}" Content="Refresh" Command="{Binding RefreshCommand}"/>
                             <Button Style="{StaticResource ActionButton}" Content="Forget LED Output" Command="{Binding ClearOutputCommand}" Margin="0"/>
                         </StackPanel>
-                        <TextBlock Text="DISPLAYS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Foreground="#FFEDEDED" Text="DISPLAYS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                     </DockPanel>
     
                     <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,10"
@@ -117,13 +129,13 @@
                             <Button DockPanel.Dock="Right" Content="Confirm this display" Padding="10,2" Margin="12,0,0,0"
                                     Command="{Binding ConfirmFallbackCommand}"
                                     Visibility="{Binding NeedsFallbackConfirmation, Converter={StaticResource BoolToVis}}"/>
-                            <TextBlock Text="{Binding OutputAlert}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="{Binding OutputAlert}" TextWrapping="Wrap" VerticalAlignment="Center" FontWeight="SemiBold"/>
                         </DockPanel>
                     </Border>
     
                     <Border Background="#FF5A4A00" Padding="12,6" Margin="0,0,0,10"
                             Visibility="{Binding HasOperatorNote, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{Binding OperatorNote}" TextWrapping="Wrap"/>
+                        <TextBlock Foreground="#FFEDEDED" Text="{Binding OperatorNote}" TextWrapping="Wrap"/>
                     </Border>
     
                     <ItemsControl ItemsSource="{Binding Items}">
@@ -140,8 +152,8 @@
                                         <TextBlock Grid.Column="0" Text="{Binding Number}" FontSize="44" FontWeight="Bold"
                                                    Foreground="#FFFFC400" VerticalAlignment="Top"/>
                                         <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding FriendlyName}" FontSize="18" FontWeight="SemiBold"/>
-                                            <TextBlock Margin="0,2,0,0">
+                                            <TextBlock Foreground="#FFEDEDED" Text="{Binding FriendlyName}" FontSize="18" FontWeight="SemiBold"/>
+                                            <TextBlock Foreground="#FFEDEDED" Margin="0,2,0,0">
                                                 <Run Text="{Binding Resolution, Mode=OneWay}" FontWeight="Bold"/>
                                                 <Run Text="   "/><Run Text="{Binding Scaling, Mode=OneWay}"/>
                                                 <Run Text="   "/><Run Text="{Binding Position, Mode=OneWay}"/>
@@ -153,7 +165,7 @@
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <Border Background="#FF3E5C76" CornerRadius="3" Padding="8,2" Margin="0,0,6,4">
-                                                            <TextBlock Text="{Binding}" FontSize="11" FontWeight="Bold"/>
+                                                            <TextBlock Foreground="#FFEDEDED" Text="{Binding}" FontSize="11" FontWeight="Bold"/>
                                                         </Border>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
@@ -185,23 +197,23 @@
                         <DockPanel Margin="0,0,0,8">
                             <Button DockPanel.Dock="Right" Style="{StaticResource ActionButton}" Margin="0"
                                     Content="Add Screen (336×672)" Command="{Binding AddCommand}"/>
-                            <TextBlock Text="SCREENS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="SCREENS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
 
                         <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,8"
                                    Text="A screen is a rectangle inside the LED output picture, usually one LED wall. The numbers below are the real settings; dragging in the picture just fills them in. Screens that are wrong are flagged and left exactly as you entered them."/>
-                        <TextBlock Text="{Binding CanvasText}" TextWrapping="Wrap" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                        <TextBlock Foreground="#FFEDEDED" Text="{Binding CanvasText}" TextWrapping="Wrap" Margin="0,0,0,8" FontWeight="SemiBold"/>
 
                         <Border Background="#FF7A1F1F" Padding="12,8" Margin="0,0,0,8"
                                 Visibility="{Binding HasSaveError, Converter={StaticResource BoolToVis}}">
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0" Command="{Binding DismissSaveErrorCommand}"/>
-                                <TextBlock Text="{Binding SaveError}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                <TextBlock Foreground="#FFEDEDED" Text="{Binding SaveError}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                             </DockPanel>
                         </Border>
                         <Border Background="#FF5A4A00" Padding="12,6" Margin="0,0,0,8"
                                 Visibility="{Binding HasSummary, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="{Binding SummaryText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
                         </Border>
 
                         <Border BorderBrush="#FF4A4A4A" BorderThickness="1" Margin="0,0,0,10">
@@ -234,19 +246,19 @@
                                                     <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontSize="16" Padding="4,2" KeyDown="CommitOnEnter"/>
                                                 </DockPanel>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock Foreground="#FFEDEDED" Text="X" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding X, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
-                                                    <TextBlock Text="Y" VerticalAlignment="Center" Margin="14,0,4,0"/>
+                                                    <TextBlock Foreground="#FFEDEDED" Text="Y" VerticalAlignment="Center" Margin="14,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding Y, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
-                                                    <TextBlock Text="Width" VerticalAlignment="Center" Margin="14,0,4,0"/>
+                                                    <TextBlock Foreground="#FFEDEDED" Text="Width" VerticalAlignment="Center" Margin="14,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding Width, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
-                                                    <TextBlock Text="Height" VerticalAlignment="Center" Margin="14,0,4,0"/>
+                                                    <TextBlock Foreground="#FFEDEDED" Text="Height" VerticalAlignment="Center" Margin="14,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding Height, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
-                                                    <TextBlock Text="Menu" VerticalAlignment="Center" Margin="18,0,4,0"/>
+                                                    <TextBlock Foreground="#FFEDEDED" Text="Menu" VerticalAlignment="Center" Margin="18,0,4,0"/>
                                                     <ComboBox Width="200" VerticalAlignment="Center" ItemsSource="{Binding MenuChoices}"
                                                               DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignedMenuKey}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
+                                                <TextBlock Foreground="#FFEDEDED" Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
                                                            Visibility="{Binding HasIssues, Converter={StaticResource BoolToVis}}">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
@@ -285,24 +297,36 @@
                     <StackPanel DataContext="{Binding Menus}">
                         <DockPanel Margin="0,0,0,8">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                <Button Style="{StaticResource ActionButton}" Content="New Sample Menu" Command="{Binding NewSampleCommand}"/>
                                 <Button Style="{StaticResource ActionButton}" Content="New Menu" Command="{Binding NewMenuCommand}" Margin="0"/>
                             </StackPanel>
-                            <TextBlock Text="MENUS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="MENUS" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
                         </DockPanel>
 
+                        <DockPanel Margin="0,0,0,8">
+                            <TextBlock DockPanel.Dock="Left" Text="Add a sample:" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource Dim}"/>
+                            <ItemsControl ItemsSource="{Binding Samples}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding Title}" ToolTip="{Binding Purpose}" Padding="10,4" Margin="0,0,6,4"
+                                                Command="{Binding DataContext.AddSampleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding Key}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DockPanel>
                         <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,8"
                                    Text="A menu is content only: a name, header, optional logo, categories and items. It is shown on a screen by choosing it in the Screens tab, so the same menu can move to another screen without changing the screen layout. Changes save automatically. Adding and editing categories and items arrives in a later phase."/>
 
                         <Border Background="#FF8A5A00" Padding="12,8" Margin="0,0,0,8"
                                 Visibility="{Binding HasLoadNotice, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="{Binding LoadNotice}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                            <TextBlock Foreground="#FFEDEDED" Text="{Binding LoadNotice}" TextWrapping="Wrap" FontWeight="SemiBold"/>
                         </Border>
                         <Border Background="#FF7A1F1F" Padding="12,8" Margin="0,0,0,8"
                                 Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0" Command="{Binding DismissMessageCommand}"/>
-                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                <TextBlock Foreground="#FFEDEDED" Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                             </DockPanel>
                         </Border>
 
@@ -317,15 +341,15 @@
                                         <StackPanel>
                                             <DockPanel Margin="0,0,0,8">
                                                 <Button DockPanel.Dock="Right" Content="Delete" Padding="10,3" Margin="8,0,0,0" Command="{Binding DeleteCommand}"/>
-                                                <TextBlock DockPanel.Dock="Left" Text="Name" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
+                                                <TextBlock Foreground="#FFEDEDED" DockPanel.Dock="Left" Text="Name" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
                                                 <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" FontSize="16" Padding="4,2" KeyDown="CommitOnEnter"/>
                                             </DockPanel>
                                             <DockPanel Margin="0,0,0,8">
-                                                <TextBlock DockPanel.Dock="Left" Text="Header" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
+                                                <TextBlock Foreground="#FFEDEDED" DockPanel.Dock="Left" Text="Header" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
                                                 <TextBox Text="{Binding HeaderText, UpdateSourceTrigger=LostFocus}" Padding="4,2" KeyDown="CommitOnEnter"/>
                                             </DockPanel>
                                             <DockPanel Margin="0,0,0,8">
-                                                <TextBlock DockPanel.Dock="Left" Text="Subtitle" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
+                                                <TextBlock Foreground="#FFEDEDED" DockPanel.Dock="Left" Text="Subtitle" VerticalAlignment="Center" Margin="0,0,8,0" Width="60"/>
                                                 <TextBox Text="{Binding Subtitle, UpdateSourceTrigger=LostFocus}" Padding="4,2" KeyDown="CommitOnEnter"/>
                                             </DockPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -333,10 +357,30 @@
                                                 <Button Content="Remove Logo" Padding="10,3" Margin="0,0,12,0" Command="{Binding RemoveLogoCommand}"/>
                                                 <TextBlock Text="{Binding LogoText}" VerticalAlignment="Center" Style="{StaticResource Dim}"/>
                                             </StackPanel>
-                                            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold"/>
+                                            <TextBlock Foreground="#FFEDEDED" Text="{Binding Summary}" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding UsedBy}" Style="{StaticResource Dim}"/>
                                             <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,6,0,0" FontWeight="SemiBold" Foreground="#FFFFC060"
                                                        Visibility="{Binding HasIssues, Converter={StaticResource BoolToVis}}"/>
+                                            <Expander Header="Preview (the same pages the LED shows)" IsExpanded="{Binding IsPreviewOpen, Mode=TwoWay}"
+                                                      Foreground="#FFEDEDED" Margin="0,10,0,0">
+                                                <StackPanel Margin="0,8,0,0">
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                        <Button Content="&#9664; Previous page" Padding="10,3" Margin="0,0,6,0" Command="{Binding PreviousPageCommand}"/>
+                                                        <Button Content="Next page &#9654;" Padding="10,3" Margin="0,0,6,0" Command="{Binding NextPageCommand}"/>
+                                                        <Button Content="Follow LED" Padding="10,3" Margin="0,0,16,0" Command="{Binding FollowCommand}"/>
+                                                        <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Dim}"/>
+                                                        <Button Content="1&#215;" Padding="10,3" Margin="0,0,4,0" Command="{Binding Zoom1Command}"/>
+                                                        <Button Content="2&#215;" Padding="10,3" Margin="0,0,4,0" Command="{Binding Zoom2Command}"/>
+                                                        <Button Content="3&#215;" Padding="10,3" Command="{Binding Zoom3Command}"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding PreviewStatus}" Style="{StaticResource Dim}" Margin="0,0,0,6"/>
+                                                    <TextBlock Text="{Binding PreviewProblems}" TextWrapping="Wrap" Margin="0,0,0,6" FontWeight="SemiBold" Foreground="#FFFFC060"
+                                                               Visibility="{Binding HasPreviewProblems, Converter={StaticResource BoolToVis}}"/>
+                                                    <Border Background="Black" BorderBrush="#FF666666" BorderThickness="1" HorizontalAlignment="Left" Padding="0">
+                                                        <controls:PixelFrameControl Frame="{Binding PreviewFrame}" Zoom="{Binding Zoom}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Expander>
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>

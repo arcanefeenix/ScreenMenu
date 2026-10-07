@@ -276,4 +276,15 @@ public static class FrameComposer
         }
         return frame;
     }
+
+    /// <summary>
+    /// Normal output: a pure black canvas with each already-rendered screen image placed at its X,Y.
+    /// The images are exactly the screens' own pixel size, so nothing is scaled.
+    /// </summary>
+    public static PixelBuffer ComposeScreens(int canvasWidth, int canvasHeight, IEnumerable<(int X, int Y, PixelBuffer Image)> screens)
+    {
+        var frame = new PixelBuffer(canvasWidth, canvasHeight);
+        foreach (var (x, y, image) in screens) frame.Blit(image, x, y);
+        return frame;
+    }
 }

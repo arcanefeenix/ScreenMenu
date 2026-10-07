@@ -10,6 +10,8 @@ using LedMenu.Core.Menus;
 using LedMenu.Core.Models;
 using LedMenu.Core.Screens;
 using LedMenu.Persistence;
+using LedMenu.Rendering;
+using System.IO;
 
 namespace LedMenu.App;
 
@@ -93,6 +95,19 @@ public partial class App : Application
             return;
         }
 
+        // Diagnostic mode: LedMenu.App.exe --dump-menus <folder> [logo.png]
+        var menuDumpIdx = Array.IndexOf(e.Args, "--dump-menus");
+        if (menuDumpIdx >= 0 && menuDumpIdx + 1 < e.Args.Length)
+        {
+            var logo = menuDumpIdx + 2 < e.Args.Length ? e.Args[menuDumpIdx + 2] : null;
+            var count = PatternDump.WriteMenus(e.Args[menuDumpIdx + 1],
+                _menuLibrary!.Menus.Count > 0 ? _menuLibrary.Menus : SampleMenus.All.Select(i => i.Create()).ToList(), _screenLayout,
+                new FontCatalog(Path.Combine(AppContext.BaseDirectory, "Fonts")), assets, logo, _log);
+            _log.Info($"Menu pages written to {e.Args[menuDumpIdx + 1]}: {count} file(s).");
+            Shutdown();
+            return;
+        }
+
         var window = new MainWindow();
         MainWindow = window;
         window.Show();
@@ -108,14 +123,19 @@ public partial class App : Application
         _controller = new OutputController(_log);
         _hotKey = new StopHotKey(hwnd, _log);
 
-        var menus = new MenusViewModel(_menuLibrary, assets, _log, PickImage, ConfirmDeleteMenu);
+        var fonts = new FontCatalog(Path.Combine(AppContext.BaseDirectory, "Fonts"));
+        _log.Info($"Fonts folder: {fonts.Directory}; families: {string.Join(", ", fonts.Families)}");
+        var render = new MenuRenderService(fonts, assets, _log);
+        var menus = new MenusViewModel(_menuLibrary, assets, _log, PickImage, ConfirmDeleteMenu, render);
         var screens = new ScreensViewModel(
             _screenLayout, SaveScreens, _log,
             canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
             confirmRemove: ConfirmRemoveScreen,
             menus: menus);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
-        var output = new OutputViewModel(_controller, _displays, screens, _hotKey, _log, ConfirmStart);
+        var output = new OutputViewModel(_controller, _displays, screens, menus, render, _hotKey, _log, ConfirmStart);
+        menus.LivePageOf = output.LivePageOf;
+        menus.ScreenSizeFor = id => screens.ScreenSizeForMenu(id);
         window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus);
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>

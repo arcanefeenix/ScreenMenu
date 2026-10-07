@@ -3,6 +3,7 @@ using LedMenu.App.Infrastructure;
 using LedMenu.App.Output;
 using LedMenu.Core.Calibration;
 using LedMenu.Core.Display;
+using LedMenu.Core.Layout;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Screens;
 
@@ -20,6 +21,13 @@ public sealed class OutputViewModel : ObservableObject
     private readonly OutputController _controller;
     private readonly DisplaysViewModel _displays;
     private readonly ScreensViewModel _screens;
+    private readonly MenusViewModel _menus;
+    private readonly MenuRenderService _render;
+    private readonly PageClock _pageClock = new();
+    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    private readonly DispatcherTimer _rotationTimer;
+    private readonly Dictionary<Guid, (Guid MenuId, int Page, int Count)> _shown = new();
+    private string? _contentWarnings;
     private readonly StopHotKey _hotKey;
     private readonly IAppLog _log;
     private readonly Func<IReadOnlyList<string>, string, bool> _confirm;
@@ -33,8 +41,11 @@ public sealed class OutputViewModel : ObservableObject
     private int _frameShown;
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
+        MenusViewModel menus, MenuRenderService render,
         StopHotKey hotKey, IAppLog log, Func<IReadOnlyList<string>, string, bool> confirm)
     {
+        _menus = menus;
+        _render = render;
         _controller = controller;
         _displays = displays;
         _screens = screens;
@@ -61,8 +72,13 @@ public sealed class OutputViewModel : ObservableObject
 
         // Screens edited while a pattern is showing: redraw once things settle (dragging fires many changes).
         _redrawDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); if (_isRunning && _mode != OutputMode.Normal) RenderFrame(); };
-        _screens.Changed += () => { if (_isRunning && _mode != OutputMode.Normal) { _redrawDebounce.Stop(); _redrawDebounce.Start(); } };
+        _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); if (_isRunning) RenderFrame(); };
+        _screens.Changed += RequestRedraw;
+        _menus.MenusChanged += RequestRedraw;
+
+        // Pages rotate on elapsed time; this timer only notices when a screen's page has changed and redraws.
+        _rotationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _rotationTimer.Tick += (_, _) => { if (_isRunning && _mode == OutputMode.Normal && PagesChanged()) RenderFrame(); };
 
         _controller.StateChanged += OnStateChanged;
         _controller.StopRequested += () => Stop("Escape pressed on the output window");
@@ -126,6 +142,7 @@ public sealed class OutputViewModel : ObservableObject
 
         if (_mode != mode)
         {
+            if (mode == OutputMode.Normal) _pageClock.ResetAll();   // leaving a test pattern restarts every menu at page 1
             _mode = mode;
             _log.Info($"Output mode: {ModeName(mode)}");
         }
@@ -170,11 +187,22 @@ public sealed class OutputViewModel : ObservableObject
 
         if (mode == OutputMode.Normal)
         {
-            LastFrame = null;
-            _controller.ShowFrame(null);
+            try
+            {
+                var normal = BuildNormalFrame(canvas, plan);
+                LastFrame = normal;
+                _controller.ShowFrame(normal);          // null = pure black
+            }
+            catch (Exception ex)
+            {
+                // a menu that cannot be drawn must never blank or crash the wall: keep what is showing and tell the operator
+                _log.Error("A menu could not be drawn; the previous picture is being kept.", ex);
+                Message = "A menu could not be drawn, so the previous picture was kept on the LED output: " + ex.Message;
+            }
             _frameShown = requested;
             return;
         }
+        ContentWarnings = null;
 
         var dispatcher = System.Windows.Application.Current.Dispatcher;
         _ = Task.Run(() =>
@@ -199,6 +227,72 @@ public sealed class OutputViewModel : ObservableObject
                 dispatcher.InvokeAsync(() => Message = "The test pattern could not be built: " + ex.Message);
             }
         });
+    }
+
+    // ---- normal output: menus -------------------------------------------------------------------
+
+    /// <summary>Problems with the menus currently on the LED output (missing logo, overflowing item, font fallback). Null when there are none.</summary>
+    public string? ContentWarnings
+    {
+        get => _contentWarnings;
+        private set { if (Set(ref _contentWarnings, value)) OnPropertyChanged(nameof(HasContentWarnings)); }
+    }
+    public bool HasContentWarnings => !string.IsNullOrEmpty(_contentWarnings);
+
+    private TimeSpan Now => _clock.Elapsed;
+
+    /// <summary>
+    /// Black canvas with each assigned menu's current page placed at its screen. Every page is the screen's own pixel size.
+    /// Screens with no menu, a missing menu, or errors stay black. Null when nothing at all is drawn.
+    /// </summary>
+    private PixelBuffer? BuildNormalFrame(CanvasSize canvas, CalibrationPlan plan)
+    {
+        var parts = new List<(int, int, PixelBuffer)>();
+        var warnings = new List<string>();
+        _shown.Clear();
+
+        foreach (var s in plan.Drawn)
+        {
+            if (s.MenuId is not { } menuId || _menus.Find(menuId) is not { } menu) continue;
+
+            var result = _render.Get(menu, s.Width, s.Height);
+            foreach (var p in result.Problems) warnings.Add($"{menu.Name}: {p.Message}");
+
+            var page = _pageClock.PageFor(s.Id, result.PageCount, PageClock.Period(menu.Theme.PageSeconds), Now);
+            _shown[s.Id] = (menuId, page, result.PageCount);
+            parts.Add((s.X, s.Y, result.Pages[Math.Min(page, result.PageCount - 1)]));
+        }
+
+        ContentWarnings = warnings.Count == 0 ? null : string.Join("\n", warnings.Distinct());
+        return parts.Count == 0 ? null : FrameComposer.ComposeScreens(canvas.Width, canvas.Height, parts);
+    }
+
+    /// <summary>True when any screen's current page is no longer the page that is on the wall.</summary>
+    private bool PagesChanged()
+    {
+        foreach (var (screenId, shown) in _shown)
+        {
+            if (shown.Count <= 1 || _menus.Find(shown.MenuId) is not { } menu) continue;
+            var page = _pageClock.PageFor(screenId, shown.Count, PageClock.Period(menu.Theme.PageSeconds), Now);
+            if (page != shown.Page) return true;
+        }
+        return false;
+    }
+
+    /// <summary>The page of this menu that is on the LED output right now (zero-based), or null if it is not being shown.</summary>
+    public (int Page, int Count)? LivePageOf(Guid menuId)
+    {
+        if (!_isRunning || _mode != OutputMode.Normal) return null;
+        foreach (var shown in _shown.Values)
+            if (shown.MenuId == menuId) return (shown.Page, shown.Count);
+        return null;
+    }
+
+    private void RequestRedraw()
+    {
+        if (!_isRunning) return;
+        _redrawDebounce.Stop();
+        _redrawDebounce.Start();
     }
 
     // ---- start / stop -------------------------------------------------------------------------
@@ -249,6 +343,9 @@ public sealed class OutputViewModel : ObservableObject
             _hotKey.Unregister();
             _identifyTimer.Stop();
             _redrawDebounce.Stop();
+            _rotationTimer.Stop();
+            _shown.Clear();
+            ContentWarnings = null;
             // A stopped output always returns to Normal, so a test pattern can never reappear by surprise at the next start.
             if (_mode != OutputMode.Normal) _log.Info($"Output stopped; mode reset from {ModeName(_mode)} to Normal Output.");
             _mode = OutputMode.Normal;
@@ -261,7 +358,12 @@ public sealed class OutputViewModel : ObservableObject
         RaiseModeChanged();
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
-        if (running) RenderFrame();
+        if (running)
+        {
+            _pageClock.ResetAll();                  // every menu starts at page 1 when output starts
+            _rotationTimer.Start();
+            RenderFrame();
+        }
     }
 
     private void OnDisplaysRefreshed()

@@ -1,7 +1,7 @@
 namespace LedMenu.Core.Calibration;
 
 /// <summary>What the calibration renderer needs to know about one screen. Numbers match the list order in the operator window.</summary>
-public sealed record CalibrationScreen(Guid Id, int Number, string Name, int X, int Y, int Width, int Height);
+public sealed record CalibrationScreen(Guid Id, int Number, string Name, int X, int Y, int Width, int Height, Guid? MenuId = null);
 
 /// <summary>
 /// Per-screen patterns. Each is generated at the screen's own configured width and height (never scaled
