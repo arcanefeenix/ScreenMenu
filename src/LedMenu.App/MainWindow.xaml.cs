@@ -39,8 +39,34 @@ public partial class MainWindow : Window
         }, System.Windows.Threading.DispatcherPriority.Background);
     }
 
+    /// <summary>Leaving an editor text box saves anything still waiting so nothing typed is held back.</summary>
+    private void EditorText_Lost(object sender, KeyboardFocusChangedEventArgs e) => (DataContext as MainViewModel)?.Editor.FlushPending();
+
+    private void EditorText_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        (DataContext as MainViewModel)?.Editor.FlushPending();
+        e.Handled = true;
+    }
+
+    private void Tabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.OriginalSource is TabControl) (DataContext as MainViewModel)?.Editor.FlushPending();
+    }
+
     private void Card_GotFocus(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: ScreenItemViewModel item }) item.Select();
     }
+}
+
+
+/// <summary>Collapses an element when its bound value is null.</summary>
+public sealed class NullToCollapsedConverter : System.Windows.Data.IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture) =>
+        value == null ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture) =>
+        throw new NotSupportedException();
 }

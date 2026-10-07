@@ -92,6 +92,26 @@ public sealed class MenuCardViewModel : ObservableObject
         }
     }
 
+    /// <summary>How long each page is shown when the menu needs more than one (seconds, 2 to 120).</summary>
+    public int PageSeconds
+    {
+        get => Model.Theme.PageSeconds;
+        set
+        {
+            var v = Math.Clamp(value, (int)PageClock.MinSeconds, (int)PageClock.MaxSeconds);
+            if (Model.Theme.PageSeconds == v) { OnPropertyChanged(); return; }
+            Model.Theme.PageSeconds = v;
+            OnPropertyChanged();
+            _owner.Edited(this);
+        }
+    }
+
+    public bool ShowPageIndicator
+    {
+        get => Model.Theme.ShowPageIndicator;
+        set { if (Model.Theme.ShowPageIndicator != value) { Model.Theme.ShowPageIndicator = value; OnPropertyChanged(); _owner.Edited(this); } }
+    }
+
     public string Summary
     {
         get
@@ -195,6 +215,16 @@ public sealed class MenusViewModel : ObservableObject
 
     /// <summary>Raised when menus were added, removed or renamed so screens can re-check their assignments.</summary>
     public event Action? MenusChanged;
+
+    /// <summary>Raised when something inside a menu changed (an item, a price, Sold Out, Hide...). Does not change the list of menus.</summary>
+    public event Action? ContentChanged;
+
+    /// <summary>The editor saved a change to this menu: refresh its summary and tell the LED output and previews.</summary>
+    public void NotifyContentChanged(Menu menu)
+    {
+        foreach (var c in Cards.Where(c => ReferenceEquals(c.Model, menu))) { c.Refresh(c.UsedBy); c.Issues = MenuValidator.Issues(c.Model, _assets.Exists); }
+        ContentChanged?.Invoke();
+    }
 
     public IReadOnlySet<Guid> Ids => _library.Ids;
     public bool HasNoMenus => Cards.Count == 0;

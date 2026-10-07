@@ -2,8 +2,10 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
 using LedMenu.App.Display;
+using LedMenu.App.Infrastructure;
 using LedMenu.App.Output;
 using LedMenu.App.ViewModels;
+using LedMenu.Core.Autosave;
 using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Menus;
@@ -24,6 +26,8 @@ public partial class App : Application
     private JsonFileStore<ScreenLayout>? _screensStore;
     private ScreenLayout _screenLayout = new();
     private MenuLibrary? _menuLibrary;
+    private SaveDebouncer? _saver;
+    private MenuEditorViewModel? _editor;
     private DisplaysViewModel? _displays;
     private OutputController? _controller;
     private StopHotKey? _hotKey;
@@ -144,7 +148,18 @@ public partial class App : Application
         var output = new OutputViewModel(_controller, _displays, screens, menus, render, _hotKey, _log, ConfirmStart);
         menus.LivePageOf = output.LivePageOf;
         menus.ScreenSizeFor = id => screens.ScreenSizeForMenu(id);
-        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus);
+        _saver = new SaveDebouncer(new DispatcherScheduler());
+        _editor = new MenuEditorViewModel(_menuLibrary, _saver, _log, ConfirmDeleteMenu, AskDeleteCategory,
+            contentChanged: menus.NotifyContentChanged,
+            inspect: menu =>
+            {
+                var (w, h) = screens.ScreenSizeForMenu(menu.Id) ?? (336, 672);
+                var result = render.Get(menu, w, h);
+                var problems = result.Problems.Count == 0 ? null : string.Join("\n", result.Problems.Select(p => "\u26A0 " + p.Message));
+                return (problems, $"Shown as {result.PageCount} page{(result.PageCount == 1 ? "" : "s")} at {w}×{h}");
+            });
+        menus.MenusChanged += _editor.RefreshMenus;
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus, _editor);
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>
         var args = e.Args;
@@ -169,6 +184,19 @@ public partial class App : Application
             CheckFileExists = true,
         };
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private DeleteCategoryChoice AskDeleteCategory(string text, string title)
+    {
+        var answer = MessageBox.Show(
+            text + "\n\nYes = delete the category AND its items.\nNo = delete only the category; its items stay (with no category).\nCancel = change nothing.",
+            title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
+        return answer switch
+        {
+            MessageBoxResult.Yes => DeleteCategoryChoice.DeleteItemsToo,
+            MessageBoxResult.No => DeleteCategoryChoice.KeepItems,
+            _ => DeleteCategoryChoice.Cancel,
+        };
     }
 
     private bool ConfirmDeleteMenu(string text, string title) =>
@@ -200,6 +228,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _saver?.FlushAll();            // anything typed and not yet saved is written before the program ends
         _controller?.Dispose();
         _hotKey?.Dispose();
         _displays?.Dispose();

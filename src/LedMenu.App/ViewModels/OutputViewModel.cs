@@ -75,6 +75,7 @@ public sealed class OutputViewModel : ObservableObject
         _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); if (_isRunning) RenderFrame(); };
         _screens.Changed += RequestRedraw;
         _menus.MenusChanged += RequestRedraw;
+        _menus.ContentChanged += RequestRedraw;
 
         // Pages rotate on elapsed time; this timer only notices when a screen's page has changed and redraws.
         _rotationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };

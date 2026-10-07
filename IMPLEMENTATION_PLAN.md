@@ -13,7 +13,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 5 Calibration | **Complete** | **Gate 1 PASSED (user-verified)**: VP2 top-left anchored, 1:1, 336x672 Screen at 0,0 verified |
 | 6 Menu Data (incl. asset import for logos) | **Complete** (review requested) | |
 | 7 Menu Renderer (template, pagination, fonts, logo) | **Complete** | **Gate 2 PASSED (user approved the layout as tested on the LED wall, including 168x672)** |
-| 8 Operator Menu UI | Not started | |
+| 8 Operator Menu UI | **Complete** (review requested) | |
 | 9 Live Preview | Not started | |
 | 10 Blackout and Operational Controls | Not started | |
 | 11 Multiple Screens | Not started | |
@@ -67,7 +67,13 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Gate 2 (human):** follow `GATE2_LED_READABILITY.md`; photos and notes on type sizes, spacing, hierarchy, sold out, featured, pagination and viewing distance. Phase 8 does not start until you approve the physical LED result.
 **Gate 2 extension (168x672):** the unchanged template was tested natively at 168x672 and a physical test of the leftmost 1x2 panel column is prepared in `GATE2_168x672_TEST.md`; a narrow-screen adaptation is proposed but not built (D-39). **Open design questions for Gate 2:** smoothed versus crisp letters; whether descriptions (14 px) and the page number (12 px) are large enough; whether the header should shrink on later pages; page time; logo box size.
 
-## Phases 8–13
+## Phase 8 — Operator Menu UI (complete)
+**Scope:** menu selection, quick price editing, Sold Out, Hide/Show, add/edit/delete/reorder items and categories, move between categories, autosave with a typing debounce, warnings in the editor, page time and page numbers per menu.
+**Requirements:** UI-002, 003, 004, 008, 011..014, 016 and PERSIST-007 Verified; UI-005 and UI-015 Implemented.
+**Tests:** 40 new automated tests: 9 for the autosave debouncer (Core) and 31 for the editor view-models (new `LedMenu.App.Tests` project). Live on the real monitor: Sold Out, Hide and a typed price each changed the wall to exactly the expected render (0 differing pixels in 3 of 3), the price was not written to disk until typing paused, and typing then closing the window at once was still saved.
+**Not in this phase:** drag-and-drop reordering (up/down buttons instead), choosing the template or font in the UI, keyboard shortcuts documentation (Phase 10), the full live preview of the output canvas (Phase 9).
+
+## Phases 9–13
 As in the spec (sections 31 and 32): operator menu UI, live preview (scaled and 100%), blackout and shortcuts, multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist

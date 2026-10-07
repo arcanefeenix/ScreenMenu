@@ -141,15 +141,21 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
 | UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Chip shows NO DISPLAY SELECTED / NO DISPLAY / CONFIRM DISPLAY / STOPPED / LIVE. BLACKOUT arrives in Phase 10 |
-| UI-002 | Menu selection, item list with Edit / Sold Out / Hide-Show per item [11, 25] | 8 | Not Started | |
-| UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Not Started | |
-| UI-004 | Edits update output immediately, no publish step [11] | 8 | Not Started | |
-| UI-005 | Technical settings kept out of the everyday view [24] | 8 | Not Started | |
+| UI-002 | Menu selection, item list with Edit / Sold Out / Hide-Show per item [11, 25] | 8 | Verified | Menu tab (the tab shown on start): pick a menu, see its categories and items in order, each with price, Sold Out, Hide/Show and Edit. 31 view-model tests; screenshot; live |
+| UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Verified | Price box on every row; Edit section for name, description, featured and category; add and delete items and categories; reorder. View-model tests and live typing of a price |
+| UI-004 | Edits update output immediately, no publish step [11] | 8 | Verified | No publish step. Live on the real monitor: after clicking Sold Out, clicking Hide, and typing a price, the wall matched the expected render each time (0 differing pixels in 3 of 3 states) |
+| UI-005 | Technical settings kept out of the everyday view [24] | 8 | Implemented | Everyday controls are on the first tab, which is selected on start; displays, screens and the menu library are on separate tabs. Whether this is simple enough for event staff is a judgement for the user |
 | UI-006 | Live preview using the shared renderer [15] | 9 | In Progress | Menus tab has a preview of the exact pages the LED shows; the full live preview of the output canvas is Phase 9 |
 | UI-007 | Scaled preview and 100% pixel preview [15] | 9 | In Progress | Menus-tab preview at 1x (true pixels), 2x or 3x with nearest-neighbor scaling and page stepping; whole-canvas preview is Phase 9 |
-| UI-008 | Operator-visible warnings for overflow / missing assets / errors [14, 22] | 8 | Not Started | |
+| UI-008 | Operator-visible warnings for overflow / missing assets / errors [14, 22] | 8 | Verified | Missing logo, font fallback and items that cannot fit are shown at the top of the editor and on the Menu Library card, in the preview, and in the output panel |
 | UI-009 | Keyboard shortcuts documented in the UI [26] | 10 | Not Started | |
 | UI-010 | Startup notice banner when data was recovered or reset | 1 | Implemented | Banner bound to load result; shown path verified by unit-level store tests, UI display not yet exercised |
+| UI-011 | Hide/Show and Sold Out are one-press toggles with clear state (button text, red Sold Out button, HIDDEN / SOLD OUT / FEATURED tags, dimmed hidden rows); hidden items stay listed so they can be shown again | 8 | Verified | View-model tests and screenshot |
+| UI-012 | Categories can be added, renamed, hidden, reordered and deleted; deleting a category with items asks whether to delete the items too or keep them with no category [D-42] | 8 | Verified | View-model tests |
+| UI-013 | Items can be added (opened for typing at once), renamed, described, featured, moved up or down, moved to another category, and deleted after confirmation | 8 | Verified | View-model tests |
+| UI-014 | A save failure is shown to the operator and the edit stays on screen; the next successful save clears it | 8 | Verified | View-model test |
+| UI-015 | Seconds per page (2 to 120) and page numbers are editable per menu in the Menu Library | 8 | Implemented | Built; not exercised in the live UI. Range is enforced and tested at the clock level |
+| UI-016 | The editor never rebuilds its lists while the operator is typing or toggling, so focus is not lost | 8 | Verified | View-model test (toggle leaves the same row objects) |
 
 ## Operational controls (OPS)
 | ID | Requirement | Phase | Status | Evidence |
@@ -172,7 +178,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
 | PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | Verified | Settings, display choices, screens, screen-to-menu assignments, menus, categories, items and theme all persist and restore (unit tests and live restarts) |
 | PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | Every file carries a schema version and a newer file is refused and kept. Backing up before a migration is not built because no migration exists yet; it will be added with the first schema change |
-| PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Not Started | |
+| PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Verified | Quick actions save at once; typed text saves once after a 500 ms pause (burst of 6 keystrokes = 1 write); focus leaving a box, switching menu or tab, and program exit flush anything waiting. 9 Core and 10 view-model tests; live: price stayed old on disk while typing and became the new value after the pause; typed text then window closed at once was saved |
 | PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Verified | Imported images live in %APPDATA%\LedMenu\assets; only a plain file name is stored in a menu; names that could point elsewhere are refused |
 
 ## Reliability and logging (REL / LOG)
