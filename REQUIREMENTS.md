@@ -52,7 +52,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 |---|---|---|---|---|
 | SCR-001 | Screen has ID, Name, X, Y, Width, Height, Enabled, Assigned Menu [8] | 4 | Verified | Model has Id, Name, X, Y, Width, Height, Enabled, AssignedMenuId; round-trip persistence test and live restart |
 | SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | In Progress | Add, edit, remove (with confirmation), enable/disable verified live. Assigning a menu arrives with menus (Phases 6 and 8); the AssignedMenuId is preserved and shown |
-| SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Verified | Typed values saved exactly (e.g. 9999, 0, -5 stored as entered and flagged); drag results saved as whole pixels; Enter or leaving the box commits |
+| SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Verified | Typed values saved exactly; drag results saved as whole pixels; an invalid or too-large entry is shown only while editing and reverts to the stored value when the box loses focus (verified live) |
 | SCR-004 | Visual scaled canvas with screen rectangles [8] | 4 | Verified | Screenshot: whole 3840x2160 canvas drawn to scale with numbered, named, colored rectangles |
 | SCR-005 | Draggable/resizable rectangles with snapping, if practical [8] | 4 | Verified | Live mouse test: move (672 to 1201), resize edge (336 to 601 wide), snap back to neighbour edge, clamp to 0,0 and to canvas bottom-right (ended exactly at 3840x2160); Alt turns snapping off (not exercised) |
 | SCR-006 | Validation: negative coordinates, invalid size, outside canvas [7] | 4 | Verified | Unit tests (non-positive, negative, outside canvas incl. 1-pixel overshoot and int overflow); live flags shown; invalid screens are kept, not corrected |
@@ -71,11 +71,21 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Calibration (CAL)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| CAL-001 | "Identify Screens": large screen number, name, W×H on each screen [17] | 5 | Not Started | |
-| CAL-002 | Test pattern: outer 1-px border, corner markers, center crosshair, center lines, grid, number, native size [17] | 5 | Not Started | |
-| CAL-003 | Crisp 1-px lines, no anti-aliasing [17] | 5 | Not Started | |
-| CAL-004 | Markers for the output canvas corners and center to reveal VP2 crop anchoring [D-4] | 5 | Not Started | |
-| CAL-005 | **Gate 1: hardware pixel mapping verified on the real VP2** [32] | 5 | Not Started | Human verification required |
+| CAL-001 | "Identify Screens": large screen number, name, W×H on each screen [17] | 5 | Implemented | Identify Screens shows SCREEN, a large number, the name, W x H and X/Y on every drawable screen at its own size. Pixel-tested and captured exactly on a Windows monitor; not yet seen on the LED wall (Gate 1) |
+| CAL-002 | Test pattern: outer 1-px border, corner markers, center crosshair, center lines, grid, number, native size [17] | 5 | Implemented | Per-screen: 1-px boundary, 20x20 corner markers, center lines, 16/64-px grid, circle, diagonals, number, name, W x H, output X/Y, local corner coordinates. Pixel-tested; not yet seen on the LED wall (Gate 1) |
+| CAL-003 | Crisp 1-px lines, no anti-aliasing [17] | 5 | Verified | Unit tests read back every pattern (boundary is exactly 1 pixel, lines on exact pixels, text from a whole-pixel font) and a capture of the real 3840x2160 monitor matched the composed frame with 0 of 8,294,400 pixels different in every mode. Windows output only; LED behavior is Gate 1 |
+| CAL-004 | Markers for the output canvas corners and center to reveal VP2 crop anchoring [D-4] | 5 | Implemented | Output Canvas Calibration: boundary, edge bands, rulers, 100-px grid with x,y labels, nine named anchors with coordinates, center lines on the middle pixels, circles and 1-px detail blocks. Pixel-tested and captured exactly on a Windows monitor; VP2 behavior is Gate 1 |
+| CAL-005 | **Gate 1: hardware pixel mapping verified on the real VP2** [32] | 5 | In Progress | Phase 5 tools are built and documented in GATE1_VP2_CHECKLIST.md. Waiting for the physical VP2 test; nothing is verified until the results are reported |
+| CAL-006 | Output Canvas Calibration is independent of configured screens and identifies source coordinates so a photo shows the visible source rectangle [D-23] | 5 | Implemented | Unit tests: nine anchors with exact coordinates, labels from a real font at every 100 px, ruler numbers, crop simulation still shows 40+ labels; ignores screens. LED reading is Gate 1 |
+| CAL-007 | Operator can choose Normal Output, Identify Screens, Screen Calibration or Output Canvas Calibration, before or during output | 5 | Verified | Live: all four selected with the mouse; frames matched the real screen in each mode |
+| CAL-008 | Test modes are obvious in the operator UI (magenta banner and "TEST" on the status chip) and never silent | 5 | Verified | Live: banner before start, banner while live, chip text per mode |
+| CAL-009 | Test modes never modify screen, menu or display configuration | 5 | Verified | screens.json and settings.json byte-identical after running every mode |
+| CAL-010 | Invalid enabled screens are not drawn in test patterns and are listed to the operator; disabled screens are left out; overlapping screens are drawn [D-24] | 5 | Verified | Plan unit tests; live: "Too Far" and "Zero" listed with reasons, "Switched Off" omitted |
+| CAL-011 | Stopping output always returns to Normal Output, so a test pattern cannot return by surprise [D-24] | 5 | Verified | Live: mode reset after Ctrl+Shift+F12 |
+| CAL-012 | Identify Screens returns to Normal Output automatically after 15 seconds [D-24] | 5 | Verified | Live: banner and chip back to normal after 16 s |
+| CAL-013 | Every pattern is generated at its own native pixel size with integer coordinates, no anti-aliasing and no WPF DPI dependence; per-screen patterns are not scaled from a generic image | 5 | Verified | 100+ unit assertions including sizes 1x1 to 3840x2160; frame equals the screen pattern pixel for pixel |
+| CAL-014 | Calibration frames are shown 1:1 on the output window and reproduce exactly at 3840x2160 on a 150% monitor at negative desktop coordinates | 5 | Verified | Capture comparison: 0 mismatches for Identify, Screen Calibration, Canvas Calibration and Normal |
+| CAL-015 | Offline reference and self-test tools: `--dump-calibration` writes the patterns as PNG; `--selftest-output` checks every mode on the real screen [D-25] | 5 | Verified | Both run and produced the results in this report |
 
 ## Menu data (MENU)
 | ID | Requirement | Phase | Status | Evidence |
@@ -128,7 +138,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | OPS-001 | Blackout: all output pure black, operator stays live, state preserved, toggle off restores [18] | 10 | Not Started | |
 | OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Not Started | |
 | OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Not Started | |
-| OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Not Started | |
+| OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Verified | Ctrl+Shift+I toggles Identify Screens (confirmed live: banner and chip changed, returned to Normal after 15 s) |
 | OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Verified | Global Ctrl+Shift+F12 stopped output with another app focused and when output covered the operator window |
 | OPS-006 | App always starts live, not blacked out [D-5] | 10 | Not Started | |
 | OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Verified | Output on the same display as the operator window: warning shown, then Ctrl+Shift+F12 recovered; also Stop button and Esc on the focused output window |

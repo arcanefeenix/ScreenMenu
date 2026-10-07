@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using LedMenu.App.Display;
+using LedMenu.Core.Calibration;
 using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
 using static LedMenu.App.Display.NativeMethods;
@@ -64,7 +65,7 @@ public partial class OutputWindow : Window
         // After WPF has processed a DPI change (which resizes the window to Windows' suggestion),
         // put the window back on the exact display bounds.
         if (msg == WM_DPICHANGED)
-            Dispatcher.BeginInvoke(Place, DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(() => { Place(); ShowFrame(_frame); }, DispatcherPriority.Background);
         return IntPtr.Zero;
     }
 
@@ -115,19 +116,23 @@ public partial class OutputWindow : Window
         }
     }
 
-    // ---- pixel probe (diagnostics only; the normal surface is pure black) ----
+    // ---- frames (calibration patterns now, menus later) --------------------------------------
 
-    /// <summary>Shows an exact 1:1 physical-pixel bitmap covering the whole client area.</summary>
-    public void ShowProbe()
+    private PixelBuffer? _frame;
+
+    /// <summary>
+    /// Shows a frame at exact 1:1 physical pixels, or pure black when null. The bitmap carries the window's
+    /// own DPI, so its natural size in WPF units is exactly its pixel size on this monitor.
+    /// </summary>
+    public void ShowFrame(PixelBuffer? frame)
     {
-        GetClientRect(Hwnd, out var c);
-        int w = c.Right - c.Left, h = c.Bottom - c.Top;
-        var dpi = VisualTreeHelper.GetDpi(this);
+        _frame = frame;
+        Surface.Children.Clear();
+        if (frame == null) return;
 
-        var buffer = ProbePattern.Render(w, h);
-        // The bitmap's own DPI equals the window's, so its natural size in WPF units is exactly w x h physical pixels.
-        var bmp = BitmapSource.Create(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY,
-            PixelFormats.Bgra32, null, buffer, w * 4);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var bmp = BitmapSource.Create(frame.Width, frame.Height, dpi.PixelsPerInchX, dpi.PixelsPerInchY,
+            PixelFormats.Bgra32, null, frame.Data, frame.Width * 4);
         bmp.Freeze();
 
         var image = new Image
@@ -140,11 +145,21 @@ public partial class OutputWindow : Window
             UseLayoutRounding = true,
         };
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
-        Surface.Children.Clear();
         Surface.Children.Add(image);
     }
 
-    public void ClearProbe() => Surface.Children.Clear();
+    /// <summary>Self-test pattern covering the whole client area.</summary>
+    public void ShowProbe()
+    {
+        GetClientRect(Hwnd, out var c);
+        var w = c.Right - c.Left;
+        var h = c.Bottom - c.Top;
+        var probe = new PixelBuffer(w, h);
+        Buffer.BlockCopy(ProbePattern.Render(w, h), 0, probe.Data, 0, probe.Data.Length);
+        ShowFrame(probe);
+    }
+
+    public void ClearProbe() => ShowFrame(null);
 
     protected override void OnClosed(EventArgs e)
     {

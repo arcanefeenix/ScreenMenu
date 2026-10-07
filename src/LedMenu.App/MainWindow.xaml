@@ -6,6 +6,7 @@
         Background="#FF1E1E1E" Foreground="#FFEDEDED">
     <Window.InputBindings>
         <KeyBinding Key="F12" Modifiers="Ctrl+Shift" Command="{Binding Output.StopCommand}"/>
+        <KeyBinding Key="I" Modifiers="Ctrl+Shift" Command="{Binding Output.ToggleIdentifyCommand}"/>
     </Window.InputBindings>
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -61,6 +62,26 @@
                         <TextBlock Style="{StaticResource Dim}" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Text="Stop output at any time: Ctrl+Shift+F12"/>
                     </DockPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="Output shows:" VerticalAlignment="Center" Margin="0,0,10,0" Style="{StaticResource Dim}"/>
+                        <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Normal Output" GroupName="OutMode" Padding="12,5" Margin="0,0,6,0"
+                                     IsChecked="{Binding IsNormalMode, Mode=OneWay}" Command="{Binding SetModeCommand}" CommandParameter="Normal"/>
+                        <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Identify Screens" GroupName="OutMode" Padding="12,5" Margin="0,0,6,0"
+                                     IsChecked="{Binding IsIdentifyMode, Mode=OneWay}" Command="{Binding SetModeCommand}" CommandParameter="IdentifyScreens"
+                                     ToolTip="Ctrl+Shift+I"/>
+                        <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Screen Calibration" GroupName="OutMode" Padding="12,5" Margin="0,0,6,0"
+                                     IsChecked="{Binding IsScreenCalibrationMode, Mode=OneWay}" Command="{Binding SetModeCommand}" CommandParameter="ScreenCalibration"/>
+                        <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Output Canvas Calibration" GroupName="OutMode" Padding="12,5"
+                                     IsChecked="{Binding IsCanvasCalibrationMode, Mode=OneWay}" Command="{Binding SetModeCommand}" CommandParameter="OutputCanvasCalibration"/>
+                    </StackPanel>
+                    <Border Background="#FFB000B0" Padding="12,8" Margin="0,10,0,0"
+                            Visibility="{Binding IsTestMode, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding ModeBannerText}" TextWrapping="Wrap" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                    <Border Background="#FF7A1F1F" Padding="12,6" Margin="0,6,0,0"
+                            Visibility="{Binding HasSkipped, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding SkippedText}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    </Border>
                     <Border Background="#FF8A5A00" Padding="12,6" Margin="0,10,0,0"
                             Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
                         <DockPanel>
@@ -214,13 +235,13 @@
                                                 </DockPanel>
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBox Width="76" Padding="3" Text="{Binding X, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter"/>
+                                                    <TextBox Width="76" Padding="3" Text="{Binding X, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Text="Y" VerticalAlignment="Center" Margin="14,0,4,0"/>
-                                                    <TextBox Width="76" Padding="3" Text="{Binding Y, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter"/>
+                                                    <TextBox Width="76" Padding="3" Text="{Binding Y, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Text="Width" VerticalAlignment="Center" Margin="14,0,4,0"/>
-                                                    <TextBox Width="76" Padding="3" Text="{Binding Width, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter"/>
+                                                    <TextBox Width="76" Padding="3" Text="{Binding Width, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Text="Height" VerticalAlignment="Center" Margin="14,0,4,0"/>
-                                                    <TextBox Width="76" Padding="3" Text="{Binding Height, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter"/>
+                                                    <TextBox Width="76" Padding="3" Text="{Binding Height, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Text="{Binding AssignedMenuText}" Style="{StaticResource Dim}" VerticalAlignment="Center" Margin="18,0,0,0"/>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"

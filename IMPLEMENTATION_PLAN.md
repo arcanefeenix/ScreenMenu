@@ -10,7 +10,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 2 Display Discovery | **Complete** (review requested) | |
 | 3 Output Window | **Complete** (review requested) | |
 | 4 Screen Model | **Complete** (review requested) | |
-| 5 Calibration | Not started | **Gate 1: VP2 hardware pixel mapping** |
+| 5 Calibration | **Built and tested; STOPPED at Gate 1** | **Gate 1: VP2 hardware pixel mapping (waiting for the physical test)** |
 | 6 Menu Data (incl. asset import for logos) | Not started | |
 | 7 Menu Renderer (template, pagination, fonts, logo) | Not started | **Gate 2: LED readability** |
 | 8 Operator Menu UI | Not started | |
@@ -48,11 +48,12 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** hot display change while the Screens tab is open; very many screens; Alt-to-disable-snap; non-numeric text recovery looks (the box keeps the typed text with a red border while the saved value is unchanged).
 **Not in this phase:** drawing screens on the LED output (Phase 5 and 7), menu assignment UI, saving several layout presets.
 
-## Phase 5 — Calibration
-**Scope:** Identify Screens, test pattern (1-px border, corners, crosshair, center lines, grid, number, W×H), output-canvas corner/center markers, crisp integer-coordinate drawing.
-**Requirements:** CAL-001..004.
-**Tests:** pixel read-back (border at x=0 and x=W-1, center lines, no partially covered pixels).
-**Gate 1:** I will give exact instructions for the VP2 test and wait for your report on border visibility, cropping, stretching, centering, dimensions and crop anchor. Phase 6 does not start without your approval.
+## Phase 5 — Calibration (built; stopped at Gate 1)
+**Scope:** Identify Screens, per-screen Screen Calibration, whole-canvas Output Canvas Calibration, four selectable output modes with an unmistakable banner, crisp pixel-exact patterns, pixel read-back tests, Gate 1 instructions. Also the Phase 4 numeric-field revert.
+**Requirements:** CAL-001..004 (Implemented, LED behavior untested), CAL-005 (waiting), CAL-006 Implemented, CAL-007..015 Verified, OPS-004, SCR-003.
+**Tests:** 51 new unit tests (pixel buffer, font, screen patterns, canvas pattern, frame composer, calibration plan) plus real-screen capture comparison of every mode and live UI checks.
+**Gate 1 (human):** follow `GATE1_VP2_CHECKLIST.md`. Work on Phase 6 does not start until the physical results are reported and approved.
+**What Gate 1 will decide:** the VP2 crop origin and visible source rectangle, whether scaling is really off, whether any rows or columns are missing, where the 336x672 Screen belongs, and whether its whole boundary is visible.
 
 ## Phase 6 — Menu Data
 **Scope:** Menu / Category / MenuItem models, ordering, visibility, sold-out, featured, JSON persistence per menu, asset import for logos, menu-to-screen assignment, schema versioning.

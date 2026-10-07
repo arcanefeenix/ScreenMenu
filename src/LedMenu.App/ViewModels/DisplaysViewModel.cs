@@ -48,6 +48,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     private string? _outputAlert;
     private string? _operatorNote;
     private bool _outputRunning;
+    private string? _testLabel;
 
     public DisplaysViewModel(IDisplaySource source, AppSettings settings, Action saveSettings, IAppLog log,
         Func<IReadOnlyList<string>, string, bool> confirm, Func<long> operatorWindowMonitor,
@@ -107,6 +108,14 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
     /// <summary>Decision for starting output against the displays as of the most recent scan.</summary>
     public OutputStartDecision EvaluateStart() =>
         OutputStartPolicy.Evaluate(_output, _current, _operatorWindowMonitor());
+
+    /// <summary>Shown on the status chip while a test pattern is on the LED output; null for normal output.</summary>
+    public void SetTestLabel(string? label)
+    {
+        if (_testLabel == label) return;
+        _testLabel = label;
+        UpdateStatus();
+    }
 
     public void SetOutputRunning(bool running)
     {
@@ -200,7 +209,7 @@ public sealed class DisplaysViewModel : ObservableObject, IDisposable
                               $"(\"{_output.Display!.FriendlyName}\", {_output.Display.Resolution}). Confirm it is the LED display before output can be used.";
                 break;
             default:
-                OutputChip = _outputRunning ? "OUTPUT: LIVE" : "OUTPUT: STOPPED";
+                OutputChip = _outputRunning ? (_testLabel == null ? "OUTPUT: LIVE" : "OUTPUT: LIVE — TEST: " + _testLabel) : "OUTPUT: STOPPED";
                 OutputAlert = null;
                 break;
         }

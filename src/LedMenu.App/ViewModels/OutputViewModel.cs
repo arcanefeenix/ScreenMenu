@@ -1,30 +1,43 @@
+using System.Windows.Threading;
 using LedMenu.App.Infrastructure;
 using LedMenu.App.Output;
+using LedMenu.Core.Calibration;
 using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
+using LedMenu.Core.Screens;
 
 namespace LedMenu.App.ViewModels;
 
 /// <summary>
-/// Start / Stop for LED output. Starting is refused (with a reason, and nothing opened) unless the saved
-/// output display is connected right now. Output never moves to a different display, and starting or
-/// stopping never writes configuration.
+/// Start / Stop for LED output, plus the output mode (normal, identify, screen calibration, canvas calibration).
+/// Starting is refused (with a reason, and nothing opened) unless the saved output display is connected right now.
+/// Output never moves to a different display. Modes only change what is drawn; they never write configuration.
 /// </summary>
 public sealed class OutputViewModel : ObservableObject
 {
+    private static readonly TimeSpan IdentifyDuration = TimeSpan.FromSeconds(15);
+
     private readonly OutputController _controller;
     private readonly DisplaysViewModel _displays;
+    private readonly ScreensViewModel _screens;
     private readonly StopHotKey _hotKey;
     private readonly IAppLog _log;
     private readonly Func<IReadOnlyList<string>, string, bool> _confirm;
+    private readonly DispatcherTimer _identifyTimer;
+    private readonly DispatcherTimer _redrawDebounce;
     private string? _message;
     private bool _isRunning;
+    private OutputMode _mode = OutputMode.Normal;
+    private string? _skippedText;
+    private int _frameRequested;
+    private int _frameShown;
 
-    public OutputViewModel(OutputController controller, DisplaysViewModel displays, StopHotKey hotKey,
-        IAppLog log, Func<IReadOnlyList<string>, string, bool> confirm)
+    public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
+        StopHotKey hotKey, IAppLog log, Func<IReadOnlyList<string>, string, bool> confirm)
     {
         _controller = controller;
         _displays = displays;
+        _screens = screens;
         _hotKey = hotKey;
         _log = log;
         _confirm = confirm;
@@ -32,6 +45,24 @@ public sealed class OutputViewModel : ObservableObject
         StartCommand = new RelayCommand(Start, () => !_isRunning);
         StopCommand = new RelayCommand(() => Stop("Stop requested by the operator"), () => _isRunning);
         DismissMessageCommand = new RelayCommand(() => Message = null);
+        SetModeCommand = new RelayCommand<string>(name =>
+        {
+            if (Enum.TryParse<OutputMode>(name, out var m)) SetMode(m);
+        });
+        ToggleIdentifyCommand = new RelayCommand(() =>
+            SetMode(_mode == OutputMode.IdentifyScreens ? OutputMode.Normal : OutputMode.IdentifyScreens));
+
+        _identifyTimer = new DispatcherTimer { Interval = IdentifyDuration };
+        _identifyTimer.Tick += (_, _) =>
+        {
+            _identifyTimer.Stop();
+            if (_mode == OutputMode.IdentifyScreens) SetMode(OutputMode.Normal);
+        };
+
+        // Screens edited while a pattern is showing: redraw once things settle (dragging fires many changes).
+        _redrawDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _redrawDebounce.Tick += (_, _) => { _redrawDebounce.Stop(); if (_isRunning && _mode != OutputMode.Normal) RenderFrame(); };
+        _screens.Changed += () => { if (_isRunning && _mode != OutputMode.Normal) { _redrawDebounce.Stop(); _redrawDebounce.Start(); } };
 
         _controller.StateChanged += OnStateChanged;
         _controller.StopRequested += () => Stop("Escape pressed on the output window");
@@ -42,6 +73,8 @@ public sealed class OutputViewModel : ObservableObject
     public RelayCommand StartCommand { get; }
     public RelayCommand StopCommand { get; }
     public RelayCommand DismissMessageCommand { get; }
+    public RelayCommand<string> SetModeCommand { get; }
+    public RelayCommand ToggleIdentifyCommand { get; }
 
     public bool IsRunning { get => _isRunning; private set => Set(ref _isRunning, value); }
 
@@ -52,6 +85,123 @@ public sealed class OutputViewModel : ObservableObject
         private set { if (Set(ref _message, value)) OnPropertyChanged(nameof(HasMessage)); }
     }
     public bool HasMessage => !string.IsNullOrEmpty(_message);
+
+    // ---- output mode ------------------------------------------------------------------------
+
+    public OutputMode Mode => _mode;
+    public bool IsNormalMode => _mode == OutputMode.Normal;
+    public bool IsIdentifyMode => _mode == OutputMode.IdentifyScreens;
+    public bool IsScreenCalibrationMode => _mode == OutputMode.ScreenCalibration;
+    public bool IsCanvasCalibrationMode => _mode == OutputMode.OutputCanvasCalibration;
+    public bool IsTestMode => _mode != OutputMode.Normal;
+
+    /// <summary>Prominent banner shown whenever a test pattern is selected or on the LED output.</summary>
+    public string ModeBannerText
+    {
+        get
+        {
+            if (_mode == OutputMode.Normal) return "";
+            var name = ModeName(_mode);
+            var tail = _mode == OutputMode.IdentifyScreens ? " Returns to Normal Output automatically after 15 seconds." : "";
+            return _isRunning
+                ? $"TEST PATTERN ON THE LED OUTPUT: {name.ToUpperInvariant()}. Menus are not being shown.{tail}"
+                : $"Test mode selected: {name}. It will be sent to the LED output when output starts.{tail}";
+        }
+    }
+
+    /// <summary>Screens that were not drawn in the current test pattern because they are invalid.</summary>
+    public string? SkippedText { get => _skippedText; private set { if (Set(ref _skippedText, value)) OnPropertyChanged(nameof(HasSkipped)); } }
+    public bool HasSkipped => !string.IsNullOrEmpty(_skippedText);
+
+    /// <summary>The frame currently on the LED output (null while normal black output or stopped).</summary>
+    public PixelBuffer? LastFrame { get; private set; }
+
+    /// <summary>False while a new frame is being prepared or has not reached the output window yet.</summary>
+    public bool FrameUpToDate => _frameShown == _frameRequested;
+
+    public void SetMode(OutputMode mode)
+    {
+        _identifyTimer.Stop();
+        if (mode == OutputMode.IdentifyScreens) _identifyTimer.Start();
+
+        if (_mode != mode)
+        {
+            _mode = mode;
+            _log.Info($"Output mode: {ModeName(mode)}");
+        }
+        RaiseModeChanged();
+        RenderFrame();
+    }
+
+    private void RaiseModeChanged()
+    {
+        OnPropertyChanged(nameof(Mode));
+        OnPropertyChanged(nameof(IsNormalMode));
+        OnPropertyChanged(nameof(IsIdentifyMode));
+        OnPropertyChanged(nameof(IsScreenCalibrationMode));
+        OnPropertyChanged(nameof(IsCanvasCalibrationMode));
+        OnPropertyChanged(nameof(IsTestMode));
+        OnPropertyChanged(nameof(ModeBannerText));
+        _displays.SetTestLabel(_isRunning && _mode != OutputMode.Normal ? ModeName(_mode).ToUpperInvariant() : null);
+    }
+
+    public static string ModeName(OutputMode m) => m switch
+    {
+        OutputMode.Normal => "Normal Output",
+        OutputMode.IdentifyScreens => "Identify Screens",
+        OutputMode.ScreenCalibration => "Screen Calibration",
+        OutputMode.OutputCanvasCalibration => "Output Canvas Calibration",
+        _ => m.ToString(),
+    };
+
+    /// <summary>Builds the frame for the current mode off the UI thread and puts it on the output when ready.</summary>
+    private void RenderFrame()
+    {
+        if (!_isRunning || _controller.Display is not { } display) { SkippedText = null; return; }
+
+        var requested = ++_frameRequested;
+        var canvas = new CanvasSize(display.Width, display.Height);
+        var mode = _mode;
+        var plan = _screens.BuildCalibrationPlan(canvas);
+
+        SkippedText = mode is OutputMode.IdentifyScreens or OutputMode.ScreenCalibration && plan.Skipped.Count > 0
+            ? "Not drawn because they are invalid: " + string.Join("; ", plan.Skipped.Select(s => $"{s.Number} {s.Name} ({s.Reason})"))
+            : null;
+
+        if (mode == OutputMode.Normal)
+        {
+            LastFrame = null;
+            _controller.ShowFrame(null);
+            _frameShown = requested;
+            return;
+        }
+
+        var dispatcher = System.Windows.Application.Current.Dispatcher;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var frame = FrameComposer.Compose(mode, canvas.Width, canvas.Height, plan.Drawn);
+                sw.Stop();
+                dispatcher.InvokeAsync(() =>
+                {
+                    if (requested != _frameRequested || !_isRunning) return;   // superseded or output stopped
+                    LastFrame = frame;
+                    _controller.ShowFrame(frame);
+                    _frameShown = requested;
+                    _log.Info($"Frame shown: {ModeName(mode)} {canvas} with {plan.Drawn.Count} screen(s), {plan.Skipped.Count} skipped, built in {sw.ElapsedMilliseconds} ms.");
+                });
+            }
+            catch (Exception ex)
+            {
+                _log.Error("Could not build the output frame.", ex);
+                dispatcher.InvokeAsync(() => Message = "The test pattern could not be built: " + ex.Message);
+            }
+        });
+    }
+
+    // ---- start / stop -------------------------------------------------------------------------
 
     public void Start()
     {
@@ -94,11 +244,24 @@ public sealed class OutputViewModel : ObservableObject
     {
         IsRunning = running;
         _displays.SetOutputRunning(running);
-        if (!running) _hotKey.Unregister();
+        if (!running)
+        {
+            _hotKey.Unregister();
+            _identifyTimer.Stop();
+            _redrawDebounce.Stop();
+            // A stopped output always returns to Normal, so a test pattern can never reappear by surprise at the next start.
+            if (_mode != OutputMode.Normal) _log.Info($"Output stopped; mode reset from {ModeName(_mode)} to Normal Output.");
+            _mode = OutputMode.Normal;
+            LastFrame = null;
+            SkippedText = null;
+            _frameShown = _frameRequested;
+        }
         if (!running && reason != null && reason.StartsWith("The output window was closed"))
             Message = reason;
+        RaiseModeChanged();
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
+        if (running) RenderFrame();
     }
 
     private void OnDisplaysRefreshed()
@@ -121,6 +284,7 @@ public sealed class OutputViewModel : ObservableObject
         {
             _log.Info($"LED output display changed geometry ({cur.Width}x{cur.Height} -> {now.Width}x{now.Height}); repositioning.");
             _controller.Reposition(now);
+            RenderFrame();
         }
     }
 }

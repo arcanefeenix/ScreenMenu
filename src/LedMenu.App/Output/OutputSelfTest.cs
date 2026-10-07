@@ -65,6 +65,36 @@ public static class OutputSelfTest
                 Line($"   Running after stop: {controller.IsRunning}");
             }
 
+            // ---- every output mode: the frame the app composed must be on the real screen, pixel for pixel ----
+            Line("");
+            Line("=== Output modes ===");
+            output.Start();
+            await Task.Delay(400);
+            if (!controller.IsRunning) Line($"Output did NOT start for the mode test. Message: {output.Message}");
+            else
+            {
+                var display = controller.Display!;
+                foreach (var mode in new[] { LedMenu.Core.Calibration.OutputMode.IdentifyScreens,
+                                              LedMenu.Core.Calibration.OutputMode.ScreenCalibration,
+                                              LedMenu.Core.Calibration.OutputMode.OutputCanvasCalibration,
+                                              LedMenu.Core.Calibration.OutputMode.Normal })
+                {
+                    output.SetMode(mode);
+                    for (var i = 0; i < 100 && !output.FrameUpToDate; i++) await Task.Delay(100);
+                    await Task.Delay(1500);
+
+                    var expected = output.LastFrame ?? new LedMenu.Core.Calibration.PixelBuffer(display.Width, display.Height);
+                    var (mismatches, samples) = CompareToFrame(display.X, display.Y, expected);
+                    Line($"{OutputViewModel.ModeName(mode)}: {mismatches} mismatching pixels out of {(long)display.Width * display.Height} " +
+                         $"(frame {expected.Width}x{expected.Height}); banner=\"{output.ModeBannerText}\"");
+                    foreach (var smp in samples) Line("     " + smp);
+                    if (!string.IsNullOrEmpty(output.SkippedText)) Line("     " + output.SkippedText);
+                }
+                output.Stop("self-test");
+                await Task.Delay(500);
+                Line($"After Stop the mode is {output.Mode} (expected Normal); running={controller.IsRunning}");
+            }
+
             var after = Hash(settingsFile);
             Line("");
             Line($"Settings hash after:  {after}");
@@ -80,6 +110,25 @@ public static class OutputSelfTest
             File.WriteAllText(reportPath, sb.ToString());
             log.Info("Output self-test finished; report written.");
         }
+    }
+
+    /// <summary>Captures the real screen at (x, y) and compares it with every pixel of <paramref name="expected"/>.</summary>
+    private static (long mismatches, List<string> samples) CompareToFrame(int x, int y, LedMenu.Core.Calibration.PixelBuffer expected)
+    {
+        var px = ScreenCapture.Capture(x, y, expected.Width, expected.Height);
+        var samples = new List<string>();
+        long mismatches = 0;
+        for (var i = 0; i < expected.Data.Length; i += 4)
+        {
+            if (px[i] == expected.Data[i] && px[i + 1] == expected.Data[i + 1] && px[i + 2] == expected.Data[i + 2]) continue;
+            mismatches++;
+            if (samples.Count < 8)
+            {
+                var p = i / 4;
+                samples.Add($"mismatch at ({p % expected.Width},{p / expected.Width}): expected RGB({expected.Data[i + 2]},{expected.Data[i + 1]},{expected.Data[i]}) got RGB({px[i + 2]},{px[i + 1]},{px[i]})");
+            }
+        }
+        return (mismatches, samples);
     }
 
     private static string Hash(string file) =>

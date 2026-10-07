@@ -71,6 +71,22 @@ public partial class App : Application
             notices.Add("Screens: " + screensLoad.Message);
         var notice = notices.Count > 0 ? string.Join("\n", notices) : null;
 
+        // Diagnostic mode: LedMenu.App.exe --dump-calibration <folder> [WIDTHxHEIGHT]
+        var dumpIdx = Array.IndexOf(e.Args, "--dump-calibration");
+        if (dumpIdx >= 0 && dumpIdx + 1 < e.Args.Length)
+        {
+            int dw = 1920, dh = 1080;
+            if (dumpIdx + 2 < e.Args.Length)
+            {
+                var parts = e.Args[dumpIdx + 2].ToLowerInvariant().Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var pw) && int.TryParse(parts[1], out var ph)) { dw = pw; dh = ph; }
+            }
+            PatternDump.Write(e.Args[dumpIdx + 1], dw, dh, _screenLayout);
+            _log.Info($"Calibration patterns written to {e.Args[dumpIdx + 1]} for {dw}x{dh}.");
+            Shutdown();
+            return;
+        }
+
         var window = new MainWindow();
         MainWindow = window;
         window.Show();
@@ -85,13 +101,13 @@ public partial class App : Application
         var hwnd = new WindowInteropHelper(window).Handle;
         _controller = new OutputController(_log);
         _hotKey = new StopHotKey(hwnd, _log);
-        var output = new OutputViewModel(_controller, _displays, _hotKey, _log, ConfirmStart);
 
         var screens = new ScreensViewModel(
             _screenLayout, SaveScreens, _log,
             canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
             confirmRemove: ConfirmRemoveScreen);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
+        var output = new OutputViewModel(_controller, _displays, screens, _hotKey, _log, ConfirmStart);
         window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens);
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>

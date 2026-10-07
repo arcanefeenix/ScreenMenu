@@ -1,5 +1,6 @@
 using System.Windows;
 using LedMenu.App.Display;
+using LedMenu.Core.Calibration;
 using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
 using static LedMenu.App.Display.NativeMethods;
@@ -55,6 +56,9 @@ public sealed class OutputController : IDisposable
             return false;
         }
     }
+
+    /// <summary>Shows a frame on the running output (null = pure black). Does nothing if output is not running.</summary>
+    public void ShowFrame(PixelBuffer? frame) => _window?.ShowFrame(frame);
 
     public void Stop(string reason)
     {

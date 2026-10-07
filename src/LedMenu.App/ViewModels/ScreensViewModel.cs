@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using LedMenu.App.Infrastructure;
+using LedMenu.Core.Calibration;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Screens;
 
@@ -165,6 +166,9 @@ public sealed class ScreensViewModel : ObservableObject
 
     /// <summary>The size screens are validated against, or null if unknown.</summary>
     public CanvasSize? CanvasSizeOrNull => Canvas.Size;
+
+    /// <summary>Which screens a test pattern may be drawn on right now (valid and enabled), and which were skipped.</summary>
+    public CalibrationPlan BuildCalibrationPlan(CanvasSize canvas) => CalibrationPlan.Build(_layout.Screens, canvas);
 
     /// <summary>Called when the output display or its size may have changed. Screen definitions are left alone.</summary>
     public void RefreshCanvas()
