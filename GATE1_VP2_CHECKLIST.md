@@ -1,5 +1,7 @@
 # Gate 1 — Mirackle VP2 hardware pixel-mapping check
 
+> **Status: PASSED (user-verified, 2026-10-07).** Result: with a 1920×1080 Windows signal and VP2 scaling disabled, the VP2 is top-left anchored and maps source (0,0) to the top-left LED at 1:1. The 7×2 (1176×672) wall shows the upper-left 1176×672 of the source. A 336×672 Screen at X=0, Y=0 filled exactly the leftmost 2×2 panel region with a complete perimeter, corners and center. See D-27 in DECISIONS.md. This checklist is kept for re-running the test with other walls or controllers.
+
 Purpose: find out exactly how the VP2 turns the Windows/HDMI picture into LEDs, and set up the 336×672 Screen from facts, not guesses.
 
 Nothing in this document assumes what the VP2 does. The app makes no assumption either: Screen 1 is **not** assumed to belong at (0,0).

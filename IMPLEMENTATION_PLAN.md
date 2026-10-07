@@ -10,7 +10,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 2 Display Discovery | **Complete** (review requested) | |
 | 3 Output Window | **Complete** (review requested) | |
 | 4 Screen Model | **Complete** (review requested) | |
-| 5 Calibration | **Built and tested; STOPPED at Gate 1** | **Gate 1: VP2 hardware pixel mapping (waiting for the physical test)** |
+| 5 Calibration | **Complete** | **Gate 1 PASSED (user-verified)**: VP2 top-left anchored, 1:1, 336x672 Screen at 0,0 verified |
 | 6 Menu Data (incl. asset import for logos) | Not started | |
 | 7 Menu Renderer (template, pagination, fonts, logo) | Not started | **Gate 2: LED readability** |
 | 8 Operator Menu UI | Not started | |
@@ -48,12 +48,11 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** hot display change while the Screens tab is open; very many screens; Alt-to-disable-snap; non-numeric text recovery looks (the box keeps the typed text with a red border while the saved value is unchanged).
 **Not in this phase:** drawing screens on the LED output (Phase 5 and 7), menu assignment UI, saving several layout presets.
 
-## Phase 5 — Calibration (built; stopped at Gate 1)
+## Phase 5 — Calibration (complete; Gate 1 passed)
 **Scope:** Identify Screens, per-screen Screen Calibration, whole-canvas Output Canvas Calibration, four selectable output modes with an unmistakable banner, crisp pixel-exact patterns, pixel read-back tests, Gate 1 instructions. Also the Phase 4 numeric-field revert.
-**Requirements:** CAL-001..004 (Implemented, LED behavior untested), CAL-005 (waiting), CAL-006 Implemented, CAL-007..015 Verified, OPS-004, SCR-003.
-**Tests:** 51 new unit tests (pixel buffer, font, screen patterns, canvas pattern, frame composer, calibration plan) plus real-screen capture comparison of every mode and live UI checks.
-**Gate 1 (human):** follow `GATE1_VP2_CHECKLIST.md`. Work on Phase 6 does not start until the physical results are reported and approved.
-**What Gate 1 will decide:** the VP2 crop origin and visible source rectangle, whether scaling is really off, whether any rows or columns are missing, where the 336x672 Screen belongs, and whether its whole boundary is visible.
+**Requirements:** CAL-002, CAL-003, CAL-004, CAL-005, CAL-006, CAL-007..015, OPS-004, SCR-003 Verified. CAL-001 (Identify Screens) Implemented: not reported on the LED wall.
+**Tests:** 51 new unit tests plus real-screen capture comparison of every mode and live UI checks.
+**Gate 1 result (user-verified):** the VP2 is top-left anchored and 1:1 with scaling off; the wall shows the upper-left 1176x672 of a 1920x1080 source; a 336x672 Screen at (0,0) maps exactly to the leftmost 2x2 panel region with full perimeter, corners and center correct. Recorded as D-27.
 
 ## Phase 6 — Menu Data
 **Scope:** Menu / Category / MenuItem models, ordering, visibility, sold-out, featured, JSON persistence per menu, asset import for logos, menu-to-screen assignment, schema versioning.
