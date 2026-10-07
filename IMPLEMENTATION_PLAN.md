@@ -95,10 +95,10 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 
 ## Phase 12 — Hardening (complete)
 **Scope:** audit of spec sections 22 and 29, then closing the gaps: per-screen render failure isolation, monitor disconnect rules with safe auto-restore, error-dialog storm protection, autosave retry, file-system failure drills, stress and hostile-input tests, a logging review.
-**Requirements:** SCR-011, LOG-001, REL-001, REL-005, REL-006, REL-007, REL-008 Verified; OUT-006 and REL-002 Implemented.
+**Requirements:** SCR-011, LOG-001, REL-001, REL-005, REL-006, REL-007, REL-008 Verified; OUT-006 Verified on hardware by the user (unplug and replug); REL-002 Implemented.
 **Tests:** 65 new automated tests (11 display-watch rules, 5 dialog throttle, 16 file-system drill cases, 28 stress and hostile-input renders, 2 render-failure isolation, 3 autosave retry). Full suite 585 passing; build with warnings as errors clean. Startup smoke test: no errors or warnings in the log.
 **Changes to the program:** renderer failures isolated per screen; output restarts when its own display returns; failed saves retry; dialog throttling; menu-render problems now also reach the log. The renderer and the persistence layer needed no changes: they passed every hostile case on the first run.
-**Not verified:** a real monitor unplug and replug (OUT-006) and a repeating unhandled exception on screen (REL-002). Human check: with output running on the LED display, unplug its cable (or turn the display off): output should stop with a message and the preview should say so; plug it back and output should return by itself with a message. Nothing should ever appear on your operator display.
+**Not verified:** a repeating unhandled exception on screen (REL-002). The monitor unplug and replug (OUT-006) was confirmed by the user.
 
 ## Phase 13
 As in the spec (sections 31 and 32): a self-contained folder publish with operator documentation and a clean-machine test.
