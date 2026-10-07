@@ -4,8 +4,10 @@ using System.Windows.Interop;
 using LedMenu.App.Display;
 using LedMenu.App.Output;
 using LedMenu.App.ViewModels;
+using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Models;
+using LedMenu.Core.Screens;
 using LedMenu.Persistence;
 
 namespace LedMenu.App;
@@ -16,6 +18,8 @@ public partial class App : Application
     private FileLog? _log;
     private JsonFileStore<AppSettings>? _settingsStore;
     private AppSettings _settings = new();
+    private JsonFileStore<ScreenLayout>? _screensStore;
+    private ScreenLayout _screenLayout = new();
     private DisplaysViewModel? _displays;
     private OutputController? _controller;
     private StopHotKey? _hotKey;
@@ -54,8 +58,18 @@ public partial class App : Application
         try { _settingsStore.Save(_settings); }
         catch (Exception ex) { _log.Error("Could not save settings at startup.", ex); }
 
-        var notice = load.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure
-            ? load.Message : null;
+        var notices = new List<string>();
+        if (load.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure && load.Message != null)
+            notices.Add(load.Message);
+
+        _screensStore = new JsonFileStore<ScreenLayout>(
+            paths.ScreensFile, paths.Backups, () => new ScreenLayout(), ScreenLayout.ValidateFile, _log);
+        var screensLoad = _screensStore.Load();
+        _screenLayout = screensLoad.Value;
+        _log.Info($"Screen layout loaded: {screensLoad.Status}, {_screenLayout.Screens.Count} screen(s)");
+        if (screensLoad.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure && screensLoad.Message != null)
+            notices.Add("Screens: " + screensLoad.Message);
+        var notice = notices.Count > 0 ? string.Join("\n", notices) : null;
 
         var window = new MainWindow();
         MainWindow = window;
@@ -72,7 +86,13 @@ public partial class App : Application
         _controller = new OutputController(_log);
         _hotKey = new StopHotKey(hwnd, _log);
         var output = new OutputViewModel(_controller, _displays, _hotKey, _log, ConfirmStart);
-        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output);
+
+        var screens = new ScreensViewModel(
+            _screenLayout, SaveScreens, _log,
+            canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
+            confirmRemove: ConfirmRemoveScreen);
+        _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens);
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>
         var args = e.Args;
@@ -87,6 +107,12 @@ public partial class App : Application
             });
         }
     }
+
+    private void SaveScreens() => _screensStore?.Save(_screenLayout);   // errors are reported by the screens view model
+
+    private bool ConfirmRemoveScreen(string name) =>
+        MessageBox.Show($"Remove \"{name}\" from the screen layout?", "Remove screen",
+            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
 
     private void SaveSettings()
     {

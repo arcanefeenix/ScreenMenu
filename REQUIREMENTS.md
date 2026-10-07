@@ -50,17 +50,23 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Screens (SCR)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| SCR-001 | Screen has ID, Name, X, Y, Width, Height, Enabled, Assigned Menu [8] | 4 | Not Started | |
-| SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | Not Started | |
-| SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Not Started | |
-| SCR-004 | Visual scaled canvas with screen rectangles [8] | 4 | Not Started | |
-| SCR-005 | Draggable/resizable rectangles with snapping, if practical [8] | 4 | Not Started | |
-| SCR-006 | Validation: negative coordinates, invalid size, outside canvas [7] | 4 | Not Started | |
-| SCR-007 | Overlap detection warns but does not forbid [7] | 4 | Not Started | |
-| SCR-008 | Panel resolution (168×336) not hard-coded [2] | 4 | Not Started | |
-| SCR-009 | Layouts saveable as presets; menus independent of layouts [9] | 4 | Not Started | |
-| SCR-010 | Output / Screen / Menu remain separate concepts [3] | 4 | Not Started | |
+| SCR-001 | Screen has ID, Name, X, Y, Width, Height, Enabled, Assigned Menu [8] | 4 | Verified | Model has Id, Name, X, Y, Width, Height, Enabled, AssignedMenuId; round-trip persistence test and live restart |
+| SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | In Progress | Add, edit, remove (with confirmation), enable/disable verified live. Assigning a menu arrives with menus (Phases 6 and 8); the AssignedMenuId is preserved and shown |
+| SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Verified | Typed values saved exactly (e.g. 9999, 0, -5 stored as entered and flagged); drag results saved as whole pixels; Enter or leaving the box commits |
+| SCR-004 | Visual scaled canvas with screen rectangles [8] | 4 | Verified | Screenshot: whole 3840x2160 canvas drawn to scale with numbered, named, colored rectangles |
+| SCR-005 | Draggable/resizable rectangles with snapping, if practical [8] | 4 | Verified | Live mouse test: move (672 to 1201), resize edge (336 to 601 wide), snap back to neighbour edge, clamp to 0,0 and to canvas bottom-right (ended exactly at 3840x2160); Alt turns snapping off (not exercised) |
+| SCR-006 | Validation: negative coordinates, invalid size, outside canvas [7] | 4 | Verified | Unit tests (non-positive, negative, outside canvas incl. 1-pixel overshoot and int overflow); live flags shown; invalid screens are kept, not corrected |
+| SCR-007 | Overlap detection warns but does not forbid [7] | 4 | Verified | Unit tests (overlap by area, edge-touching is fine, disabled ignored); live warnings on both screens and cleared by disabling one |
+| SCR-008 | Panel resolution (168×336) not hard-coded [2] | 4 | Verified | Tests use 1x1, 1176x336, 620x1080, 920x1080 and 336x672 screens; 336x672 appears only as the Add default and a convenience button |
+| SCR-009 | Layouts saveable as presets; menus independent of layouts [9] | 4 | In Progress | Layout is a named, versioned object separate from menus and from the selected display. Saving several presets is not built yet |
+| SCR-010 | Output / Screen / Menu remain separate concepts [3] | 4 | Verified | Screens live in screens.json; editing, moving and removing screens left settings.json (selected displays) byte-identical |
 | SCR-011 | Multiple independent screens, each with its own menu, on one canvas [2, 31] | 11 | Not Started | |
+| SCR-012 | A screen outside the canvas, or made invalid by a smaller output, is flagged and left exactly as entered (never clipped or resized) [D-17] | 4 | Verified | Unit tests; live: display missing with last-known 1920x1080 flagged a 2976-wide edge and screens.json stayed byte-identical |
+| SCR-013 | Disabled screens are excluded from overlap checks and from `RenderableScreens`; an enabled screen with errors is excluded from rendering [D-17] | 4 | Implemented | Unit-tested; no screen rendering exists until Phase 5 and 7 |
+| SCR-014 | Canvas for validation = connected output size, else last known size, else "unknown" (bounds not checked) [D-17] | 4 | Verified | Resolver unit tests; live: connected, missing display and none selected |
+| SCR-015 | Screen layout persists in its own file with atomic save, backups and recovery | 4 | Verified | Persistence tests (round trip, out-of-range values, corrupt-file recovery); live restart restored layout |
+| SCR-016 | Add Screen defaults to 336x672 at the first free position; a per-screen "Set 336x672" button; neither is a model constraint | 4 | Verified | Placement unit tests; live adds landed at (0,0), (336,0), (672,0) |
+| SCR-017 | Removing a screen asks for confirmation; No leaves the layout and file unchanged | 4 | Verified | Live test with N then Y |
 
 ## Calibration (CAL)
 | ID | Requirement | Phase | Status | Evidence |
@@ -135,7 +141,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PERSIST-002 | Atomic save: temp file, validate, replace [19] | 1 | Verified | JsonFileStore tests incl. leftover .tmp and invalid-save refusal. Real power-loss not testable; logic verified |
 | PERSIST-003 | Keep backups of last known-good files (last 10) [19, D-1] | 1 | Verified | Backup creation and pruning tests |
 | PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
-| PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | In Progress | Settings file only so far |
+| PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | In Progress | Settings and screen layout persisted (screens.json); menus, categories, items and themes arrive in Phase 6 |
 | PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | AppSettings has schema version and rejects newer files |
 | PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Not Started | |
 | PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Not Started | |

@@ -6,13 +6,14 @@ public sealed class MainViewModel : ObservableObject
 {
     private string? _startupNotice;
 
-    public MainViewModel(string dataFolder, string version, string? startupNotice, DisplaysViewModel displays, OutputViewModel output)
+    public MainViewModel(string dataFolder, string version, string? startupNotice, DisplaysViewModel displays, OutputViewModel output, ScreensViewModel screens)
     {
         DataFolder = dataFolder;
         Version = version;
         _startupNotice = startupNotice;
         Displays = displays;
         Output = output;
+        Screens = screens;
         DismissNoticeCommand = new RelayCommand(() => StartupNotice = null);
     }
 
@@ -20,6 +21,7 @@ public sealed class MainViewModel : ObservableObject
     public string Version { get; }
     public DisplaysViewModel Displays { get; }
     public OutputViewModel Output { get; }
+    public ScreensViewModel Screens { get; }
     public RelayCommand DismissNoticeCommand { get; }
 
     /// <summary>Banner text when startup recovered or reset data. Null when everything was normal.</summary>

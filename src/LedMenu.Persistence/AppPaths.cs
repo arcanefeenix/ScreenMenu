@@ -13,6 +13,7 @@ public sealed class AppPaths
     public string Backups => Path.Combine(Root, "backups");
     public string Assets => Path.Combine(Root, "assets");
     public string SettingsFile => Path.Combine(Root, "settings.json");
+    public string ScreensFile => Path.Combine(Root, "screens.json");
 
     public void EnsureCreated()
     {

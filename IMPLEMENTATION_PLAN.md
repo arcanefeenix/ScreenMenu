@@ -9,7 +9,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 1 Foundation | **Complete** | |
 | 2 Display Discovery | **Complete** (review requested) | |
 | 3 Output Window | **Complete** (review requested) | |
-| 4 Screen Model | Not started | |
+| 4 Screen Model | **Complete** (review requested) | |
 | 5 Calibration | Not started | **Gate 1: VP2 hardware pixel mapping** |
 | 6 Menu Data (incl. asset import for logos) | Not started | |
 | 7 Menu Renderer (template, pagination, fonts, logo) | Not started | **Gate 2: LED readability** |
@@ -41,10 +41,12 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** a DPI different from the operator monitor's (both dev monitors are 150%); display unplugged while output runs; the real Mirackle VP2 (resolution 1920x1080 / 1176x672, crop anchor); output on a display with Windows scaling other than 150%.
 **Gate note:** nothing here counts as VP2 pixel-mapping verification; that remains Gate 1 after Phase 5.
 
-## Phase 4 — Screen Model
-**Scope:** `Screen`, `ScreenLayout`, validation (bounds, negative, size, overlap warning), add/edit/remove/enable, numeric editor, scaled canvas view with rectangles, layout presets in the data model; draggable handles only if reliable.
-**Requirements:** SCR-001..010.
-**Tests:** bounds, negative values, zero size, partially outside, overlap, preset serialization.
+## Phase 4 — Screen Model (complete)
+**Scope:** `Screen` and `ScreenLayout` model, validation against the output canvas, numeric editor, scaled canvas editor with optional drag/resize/snap, persistence in `screens.json`, add/remove/enable, default 336x672 convenience.
+**Requirements:** SCR-001..008, SCR-010, SCR-012..017; SCR-002 and SCR-009 partly (menu assignment and multiple presets come later); SCR-011 waits for Phase 11 rendering.
+**Tests:** 48 new unit tests (validator, layout file rules, canvas resolver, placement, snapping, persistence) plus live UI checks recorded in the Phase 4 report.
+**Not verified:** hot display change while the Screens tab is open; very many screens; Alt-to-disable-snap; non-numeric text recovery looks (the box keeps the typed text with a red border while the saved value is unchanged).
+**Not in this phase:** drawing screens on the LED output (Phase 5 and 7), menu assignment UI, saving several layout presets.
 
 ## Phase 5 — Calibration
 **Scope:** Identify Screens, test pattern (1-px border, corners, crosshair, center lines, grid, number, W×H), output-canvas corner/center markers, crisp integer-coordinate drawing.
