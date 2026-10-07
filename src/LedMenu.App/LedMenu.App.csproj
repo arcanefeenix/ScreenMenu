@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.1.0</Version>
+    <AssemblyTitle>LED Menu Control</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LedMenu.Core\LedMenu.Core.csproj" />
+    <ProjectReference Include="..\LedMenu.Persistence\LedMenu.Persistence.csproj" />
+    <ProjectReference Include="..\LedMenu.Rendering\LedMenu.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>

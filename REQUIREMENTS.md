@@ -1,0 +1,154 @@
+# REQUIREMENTS
+
+Source: `MASTER_PROMPT.md` (section numbers in brackets). Approved scope changes are in `DECISIONS.md` and marked **[D-n]**.
+
+Status values: **Not Started** → **In Progress** → **Implemented** (code exists) → **Verified** (evidence that it works).
+"Verified" requires evidence listed in the Evidence column. Hardware-dependent items stay Implemented until a human gate passes.
+
+## Foundation (FOUND)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| FOUND-001 | Native Windows desktop app: C# / .NET / WPF [4] | 1 | Verified | Solution builds on .NET 8 SDK, 0 warnings (-warnaserror); app launches |
+| FOUND-002 | Fully offline; no cloud, web server, Firebase or network dependency [4] | 1 | Verified | No network packages referenced; only test packages beyond the SDK |
+| FOUND-003 | Minimal external dependencies [4] | 1 | Verified | App projects have zero NuGet packages |
+| FOUND-004 | Clean separation: Models, Persistence, Menu mgmt, Screen/output mgmt, Rendering, UI/VMs, Display discovery [28] | 1 | In Progress | Core / Persistence / Rendering / App projects created; remaining areas arrive with their phases |
+| FOUND-005 | Automated test projects for non-UI logic [29] | 1 | Verified | Core.Tests (8) and Persistence.Tests (12) pass |
+| FOUND-006 | Self-contained publish, no installer [D-5] | 13 | Not Started | |
+| FOUND-007 | Recover previous state after restart [4] | 6 | Not Started | |
+
+## Display discovery (DISP)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| DISP-001 | Enumerate Windows displays [6] | 2 | Not Started | |
+| DISP-002 | Operator selects LED Output Display and Operator Display [6] | 2 | Not Started | |
+| DISP-003 | Detect each display's pixel resolution and DPI [7, 16] | 2 | Not Started | |
+| DISP-004 | Persist selection with enough identity to restore it (device path, bounds fallback) [6] | 2 | Not Started | |
+| DISP-005 | If saved output display is missing: output disabled, operator alerted, can choose another; never fullscreen on the operator's monitor [6, 22] | 2 | Not Started | |
+| DISP-006 | Operator always retains control [6] | 2 | Not Started | |
+| DISP-007 | Warn before choosing the operator's own display as output [D-1] | 2 | Not Started | |
+
+## Output window (OUT)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| OUT-001 | Borderless, no chrome, no scrollbars, no controls, fills selected display, covers taskbar [5] | 3 | Not Started | |
+| OUT-002 | Canvas uses the actual pixel size of the selected display [7] | 3 | Not Started | |
+| OUT-003 | Unused canvas is pure black [7] | 3 | Not Started | |
+| OUT-004 | Start / Stop output without closing the app [27] | 3 | Not Started | |
+| OUT-005 | Output window uses the same renderer as preview [5, 15] | 9 | Not Started | |
+| OUT-006 | Monitor disconnect: no crash, operator notified, no hijacking another display, reconnects only to the same display [22] | 12 | Not Started | |
+| OUT-007 | Output never steals keyboard focus from the operator window [27, D-1] | 3 | Not Started | |
+
+## Screens (SCR)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| SCR-001 | Screen has ID, Name, X, Y, Width, Height, Enabled, Assigned Menu [8] | 4 | Not Started | |
+| SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | Not Started | |
+| SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Not Started | |
+| SCR-004 | Visual scaled canvas with screen rectangles [8] | 4 | Not Started | |
+| SCR-005 | Draggable/resizable rectangles with snapping, if practical [8] | 4 | Not Started | |
+| SCR-006 | Validation: negative coordinates, invalid size, outside canvas [7] | 4 | Not Started | |
+| SCR-007 | Overlap detection warns but does not forbid [7] | 4 | Not Started | |
+| SCR-008 | Panel resolution (168×336) not hard-coded [2] | 4 | Not Started | |
+| SCR-009 | Layouts saveable as presets; menus independent of layouts [9] | 4 | Not Started | |
+| SCR-010 | Output / Screen / Menu remain separate concepts [3] | 4 | Not Started | |
+| SCR-011 | Multiple independent screens, each with its own menu, on one canvas [2, 31] | 11 | Not Started | |
+
+## Calibration (CAL)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| CAL-001 | "Identify Screens": large screen number, name, W×H on each screen [17] | 5 | Not Started | |
+| CAL-002 | Test pattern: outer 1-px border, corner markers, center crosshair, center lines, grid, number, native size [17] | 5 | Not Started | |
+| CAL-003 | Crisp 1-px lines, no anti-aliasing [17] | 5 | Not Started | |
+| CAL-004 | Markers for the output canvas corners and center to reveal VP2 crop anchoring [D-4] | 5 | Not Started | |
+| CAL-005 | **Gate 1: hardware pixel mapping verified on the real VP2** [32] | 5 | Not Started | Human verification required |
+
+## Menu data (MENU)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| MENU-001 | Menu: ID, Name, Header, Subtitle, Categories, Items, Theme [10] | 6 | Not Started | |
+| MENU-002 | Item: ID, Name, Description, Price (free text), Category, Visible, Sold Out, Featured, Sort Order [10] | 6 | Not Started | |
+| MENU-003 | Category: ID, Name, Visible, Sort Order [13] | 6 | Not Started | |
+| MENU-004 | Deterministic ordering of items and categories [29] | 6 | Not Started | |
+| MENU-005 | Hidden items are removed and content reflows [12] | 6 | Not Started | |
+| MENU-006 | Sold Out and Hidden are independent states; treatment is not stored in data [12] | 6 | Not Started | |
+| MENU-007 | Optional logo per menu, imported into app-managed assets [D-2] | 6 | Not Started | |
+| MENU-008 | Missing/corrupt logo falls back safely and alerts the operator [22, D-2] | 6 | Not Started | |
+
+## Rendering (RENDER)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| RENDER-001 | One authoritative pipeline for preview and output [15, 28] | 7 | Not Started | |
+| RENDER-002 | Render at each Screen's native W×H, then place into the canvas [16] | 7 | Not Started | |
+| RENDER-003 | 1 rendered pixel = 1 output pixel regardless of Windows DPI scaling [16] | 3 | In Progress | PerMonitorV2 manifest declared; pixel read-back tests come with Phase 3 |
+| RENDER-004 | Pixel-snapped placement, nearest-neighbor, no blur [16] | 3 | Not Started | |
+| RENDER-005 | First template tuned for 336×672 portrait; large type, high contrast [14] | 7 | Not Started | |
+| RENDER-006 | Multiple templates possible later [14, 34] | 7 | Not Started | |
+| RENDER-007 | Category headers supported [13] | 7 | Not Started | |
+| RENDER-008 | Sold-out treatment chosen by template [12] | 7 | Not Started | |
+| RENDER-009 | Never draw text outside screen bounds [14] | 7 | Not Started | |
+| RENDER-010 | Paginate overflow; header/logo repeat; categories not orphaned; recompute on changes [D-3] | 7 | Not Started | |
+| RENDER-011 | Per-menu page duration; rotation timer in output; preview follows [D-3] | 7 | Not Started | |
+| RENDER-012 | Warn when content cannot fit even paginated; never shrink below minimum size [14, D-3] | 7 | Not Started | |
+| RENDER-013 | Bundled, theme-selectable font loaded from file; fallback with warning [D-2] | 7 | Not Started | |
+| RENDER-014 | Last-good frame retained if a render throws; operator alerted [22, D-1] | 7 | Not Started | |
+| RENDER-015 | **Gate 2: LED readability confirmed on real panels** [32] | 7 | Not Started | Human verification required |
+
+## Operator UI (UI)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| UI-001 | Operator window with output status chip and normal Windows behavior [5, 25] | 1 | Implemented | Shell launches; status chip shows OUTPUT: STOPPED. Becomes Verified when status reflects real state (Phase 3) |
+| UI-002 | Menu selection, item list with Edit / Sold Out / Hide-Show per item [11, 25] | 8 | Not Started | |
+| UI-003 | Quick price editing; add/edit items and categories [11, 24] | 8 | Not Started | |
+| UI-004 | Edits update output immediately, no publish step [11] | 8 | Not Started | |
+| UI-005 | Technical settings kept out of the everyday view [24] | 8 | Not Started | |
+| UI-006 | Live preview using the shared renderer [15] | 9 | Not Started | |
+| UI-007 | Scaled preview and 100% pixel preview [15] | 9 | Not Started | |
+| UI-008 | Operator-visible warnings for overflow / missing assets / errors [14, 22] | 8 | Not Started | |
+| UI-009 | Keyboard shortcuts documented in the UI [26] | 10 | Not Started | |
+| UI-010 | Startup notice banner when data was recovered or reset | 1 | Implemented | Banner bound to load result; shown path verified by unit-level store tests, UI display not yet exercised |
+
+## Operational controls (OPS)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| OPS-001 | Blackout: all output pure black, operator stays live, state preserved, toggle off restores [18] | 10 | Not Started | |
+| OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Not Started | |
+| OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Not Started | |
+| OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Not Started | |
+| OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Not Started | |
+| OPS-006 | App always starts live, not blacked out [D-5] | 10 | Not Started | |
+| OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Not Started | |
+| OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | Not Started | |
+
+## Persistence (PERSIST)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| PERSIST-001 | JSON files in an application-data directory, not the exe folder [19] | 1 | Verified | settings.json created under %APPDATA%\LedMenu on first launch; AppPaths tests |
+| PERSIST-002 | Atomic save: temp file, validate, replace [19] | 1 | Verified | JsonFileStore tests incl. leftover .tmp and invalid-save refusal. Real power-loss not testable; logic verified |
+| PERSIST-003 | Keep backups of last known-good files (last 10) [19, D-1] | 1 | Verified | Backup creation and pruning tests |
+| PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
+| PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | In Progress | Settings file only so far |
+| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | AppSettings has schema version and rejects newer files |
+| PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Not Started | |
+| PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Not Started | |
+
+## Reliability and logging (REL / LOG)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| LOG-001 | Log startup/shutdown, display events, config load/recovery, assignment changes, renderer failures [23] | 1 | In Progress | Startup, settings load and recovery logged; others arrive with their features |
+| LOG-002 | Log is useful for event troubleshooting; no per-frame noise [23] | 1 | Implemented | Daily rolling file, 14-day retention |
+| LOG-003 | Logging never throws into the app [22] | 1 | Verified | FileLog test with unwritable directory |
+| REL-001 | Invalid config: no crash, explain, prevent invalid rendering [22] | 12 | Not Started | |
+| REL-002 | Unhandled UI exception is logged and the operator window survives [22, D-1] | 1 | Implemented | Handler installed; not yet provoked in a test |
+| REL-003 | Single instance only [D-1] | 1 | Implemented | Second launch shows "already running" dialog in smoke test |
+| REL-004 | Startup self-check logs display geometry and DPI [D-1] | 3 | Not Started | |
+| REL-005 | Stress / edge testing list from spec section 29 [29] | 12 | Not Started | |
+
+## Packaging (PKG)
+| ID | Requirement | Phase | Status | Evidence |
+|---|---|---|---|---|
+| PKG-001 | Self-contained release build, runnable from a folder/desktop [D-5] | 13 | Not Started | |
+| PKG-002 | Clean-machine startup test [31] | 13 | Not Started | Human verification required |
+| PKG-003 | Operator documentation [31] | 13 | Not Started | |
+
+## Out of scope (spec section 33)
+Cloud, auth, remote admin, Firebase, web hosting, SaaS, sync, ordering, payments, inventory, POS, free-form drag-and-drop design, video, decorative animation, AI content. Page rotation (RENDER-011) is functional, not decorative.
