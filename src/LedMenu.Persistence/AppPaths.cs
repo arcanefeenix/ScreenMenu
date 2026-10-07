@@ -12,6 +12,8 @@ public sealed class AppPaths
     public string Logs => Path.Combine(Root, "logs");
     public string Backups => Path.Combine(Root, "backups");
     public string Assets => Path.Combine(Root, "assets");
+    public string Menus => Path.Combine(Root, "menus");
+    public string Trash => Path.Combine(Root, "trash");
     public string SettingsFile => Path.Combine(Root, "settings.json");
     public string ScreensFile => Path.Combine(Root, "screens.json");
 
@@ -21,5 +23,7 @@ public sealed class AppPaths
         Directory.CreateDirectory(Logs);
         Directory.CreateDirectory(Backups);
         Directory.CreateDirectory(Assets);
+        Directory.CreateDirectory(Menus);
+        Directory.CreateDirectory(Trash);
     }
 }

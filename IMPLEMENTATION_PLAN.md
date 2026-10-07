@@ -11,7 +11,7 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 | 3 Output Window | **Complete** (review requested) | |
 | 4 Screen Model | **Complete** (review requested) | |
 | 5 Calibration | **Complete** | **Gate 1 PASSED (user-verified)**: VP2 top-left anchored, 1:1, 336x672 Screen at 0,0 verified |
-| 6 Menu Data (incl. asset import for logos) | Not started | |
+| 6 Menu Data (incl. asset import for logos) | **Complete** (review requested) | |
 | 7 Menu Renderer (template, pagination, fonts, logo) | Not started | **Gate 2: LED readability** |
 | 8 Operator Menu UI | Not started | |
 | 9 Live Preview | Not started | |
@@ -54,10 +54,11 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Tests:** 51 new unit tests plus real-screen capture comparison of every mode and live UI checks.
 **Gate 1 result (user-verified):** the VP2 is top-left anchored and 1:1 with scaling off; the wall shows the upper-left 1176x672 of a 1920x1080 source; a 336x672 Screen at (0,0) maps exactly to the leftmost 2x2 panel region with full perimeter, corners and center correct. Recorded as D-27.
 
-## Phase 6 — Menu Data
-**Scope:** Menu / Category / MenuItem models, ordering, visibility, sold-out, featured, JSON persistence per menu, asset import for logos, menu-to-screen assignment, schema versioning.
-**Requirements:** MENU-001..008, PERSIST-005, PERSIST-006, PERSIST-008, FOUND-007.
-**Tests:** ordering, hidden category, all hidden, all sold out, serialization round trip, missing asset.
+## Phase 6 — Menu Data (complete)
+**Scope:** menu, category and item model with ordering, visibility, sold out and featured; the rendered-view rules (`MenuView`); file-per-menu persistence with backups and recovery; image import for logos; menu-to-screen assignment; schema versions; a small Menus tab.
+**Requirements:** MENU-001..004, 006, 007, 009..015 Verified; MENU-005 and MENU-008 Implemented (the drawing half is Phase 7); PERSIST-005, PERSIST-008, FOUND-007, SCR-002 Verified; PERSIST-006 In Progress.
+**Tests:** 84 new unit tests (ordering, editor operations, view rules, validator, library, assignment, asset rules, file store, asset store) plus live UI and corruption tests.
+**Not done in this phase:** editing categories and items in the UI, autosave debounce (Phase 8); schema migration with a pre-migration backup (first needed when the schema changes); drawing a menu or logo (Phase 7).
 
 ## Phase 7 — Menu Renderer
 **Scope:** `ScreenRenderer` producing a native-size bitmap, first 336×672 template, bundled font loading, logo header, category headers, sold-out treatment, pagination and page timer, fit warnings, last-good-frame protection.

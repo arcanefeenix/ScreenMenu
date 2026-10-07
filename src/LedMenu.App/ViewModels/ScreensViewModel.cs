@@ -42,7 +42,28 @@ public sealed class ScreenItemViewModel : ObservableObject
         set { if (Model.Enabled != value) { Model.Enabled = value; OnPropertyChanged(); _owner.ItemEdited(this); } }
     }
 
-    public string AssignedMenuText => Model.AssignedMenuId is { } id ? $"Menu {id.ToString()[..8]}…" : "No menu assigned";
+    /// <summary>The menus this screen can show, for the drop-down.</summary>
+    public IReadOnlyList<MenuChoice> MenuChoices => _owner.MenuChoices;
+
+    /// <summary>The assigned menu's id, or <see cref="Guid.Empty"/> for none. An id whose menu is missing is kept as it is.</summary>
+    public Guid AssignedMenuKey
+    {
+        get => Model.AssignedMenuId ?? Guid.Empty;
+        set
+        {
+            Guid? v = value == Guid.Empty ? null : value;
+            if (Model.AssignedMenuId == v) return;
+            Model.AssignedMenuId = v;
+            OnPropertyChanged();
+            _owner.ItemEdited(this);
+        }
+    }
+
+    public void RaiseMenusChanged()
+    {
+        OnPropertyChanged(nameof(MenuChoices));
+        OnPropertyChanged(nameof(AssignedMenuKey));
+    }
 
     public bool IsSelected => ReferenceEquals(_owner.Selected, this);
     public void Select() => _owner.Selected = this;
@@ -90,14 +111,16 @@ public sealed class ScreensViewModel : ObservableObject
     private readonly IAppLog _log;
     private readonly Func<CanvasInfo> _canvasProvider;
     private readonly Func<string, bool> _confirmRemove;
+    private readonly MenusViewModel _menus;
     private CanvasInfo _canvas = new(null, CanvasSource.Unknown, null);
     private ScreenItemViewModel? _selected;
     private string _lastIssueSignature = "";
     private string? _saveError;
 
     public ScreensViewModel(ScreenLayout layout, Action save, IAppLog log,
-        Func<CanvasInfo> canvasProvider, Func<string, bool> confirmRemove)
+        Func<CanvasInfo> canvasProvider, Func<string, bool> confirmRemove, MenusViewModel menus)
     {
+        _menus = menus;
         _layout = layout;
         _save = save;
         _log = log;
@@ -105,6 +128,9 @@ public sealed class ScreensViewModel : ObservableObject
         _confirmRemove = confirmRemove;
 
         foreach (var s in _layout.Screens) Items.Add(new ScreenItemViewModel(s, this));
+        _menus.ScreensUsing = id => _layout.Screens.Where(sc => sc.AssignedMenuId == id)
+            .Select(sc => string.IsNullOrWhiteSpace(sc.Name) ? "(unnamed screen)" : sc.Name).ToList();
+        _menus.MenusChanged += () => { foreach (var i in Items) i.RaiseMenusChanged(); Revalidate(); };
         AddCommand = new RelayCommand(Add);
         DismissSaveErrorCommand = new RelayCommand(() => SaveError = null);
         Renumber();
@@ -113,6 +139,8 @@ public sealed class ScreensViewModel : ObservableObject
     }
 
     public ObservableCollection<ScreenItemViewModel> Items { get; } = new();
+
+    internal IReadOnlyList<MenuChoice> MenuChoices => _menus.Choices;
     public RelayCommand AddCommand { get; }
     public RelayCommand DismissSaveErrorCommand { get; }
 
@@ -244,7 +272,7 @@ public sealed class ScreensViewModel : ObservableObject
 
     private void Revalidate()
     {
-        var issues = ScreenValidator.Validate(_layout.Screens, Canvas.Size);
+        var issues = ScreenValidator.Validate(_layout.Screens, Canvas.Size, _menus.Ids);
         foreach (var item in Items)
             item.Issues = issues.Where(i => i.ScreenId == item.Model.Id).ToList();
 
@@ -266,6 +294,7 @@ public sealed class ScreensViewModel : ObservableObject
             }
         }
 
+        _menus.RefreshUsage();
         OnPropertyChanged(nameof(SummaryText));
         OnPropertyChanged(nameof(HasSummary));
         OnPropertyChanged(nameof(HasErrors));

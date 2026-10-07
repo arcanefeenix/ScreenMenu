@@ -14,7 +14,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | FOUND-004 | Clean separation: Models, Persistence, Menu mgmt, Screen/output mgmt, Rendering, UI/VMs, Display discovery [28] | 1 | In Progress | Core / Persistence / Rendering / App projects created; remaining areas arrive with their phases |
 | FOUND-005 | Automated test projects for non-UI logic [29] | 1 | Verified | Core.Tests (8) and Persistence.Tests (12) pass |
 | FOUND-006 | Self-contained publish, no installer [D-5] | 13 | Not Started | |
-| FOUND-007 | Recover previous state after restart [4] | 6 | Not Started | |
+| FOUND-007 | Recover previous state after restart [4] | 6 | Verified | Displays, screens, assignments and menus are restored after restart (live) |
 
 ## Display discovery (DISP)
 | ID | Requirement | Phase | Status | Evidence |
@@ -51,7 +51,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
 | SCR-001 | Screen has ID, Name, X, Y, Width, Height, Enabled, Assigned Menu [8] | 4 | Verified | Model has Id, Name, X, Y, Width, Height, Enabled, AssignedMenuId; round-trip persistence test and live restart |
-| SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | In Progress | Add, edit, remove (with confirmation), enable/disable verified live. Assigning a menu arrives with menus (Phases 6 and 8); the AssignedMenuId is preserved and shown |
+| SCR-002 | Add / edit / remove / enable-disable screens; assign menus [8] | 4 | Verified | Add, edit, remove, enable/disable verified in Phase 4; assigning a menu through the drop-down verified live in Phase 6 (saved, restored, shown in the Menus tab) |
 | SCR-003 | Numeric X/Y/W/H editing is authoritative [8] | 4 | Verified | Typed values saved exactly; drag results saved as whole pixels; an invalid or too-large entry is shown only while editing and reverts to the stored value when the box loses focus (verified live) |
 | SCR-004 | Visual scaled canvas with screen rectangles [8] | 4 | Verified | Screenshot: whole 3840x2160 canvas drawn to scale with numbered, named, colored rectangles |
 | SCR-005 | Draggable/resizable rectangles with snapping, if practical [8] | 4 | Verified | Live mouse test: move (672 to 1201), resize edge (336 to 601 wide), snap back to neighbour edge, clamp to 0,0 and to canvas bottom-right (ended exactly at 3840x2160); Alt turns snapping off (not exercised) |
@@ -90,14 +90,21 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Menu data (MENU)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| MENU-001 | Menu: ID, Name, Header, Subtitle, Categories, Items, Theme [10] | 6 | Not Started | |
-| MENU-002 | Item: ID, Name, Description, Price (free text), Category, Visible, Sold Out, Featured, Sort Order [10] | 6 | Not Started | |
-| MENU-003 | Category: ID, Name, Visible, Sort Order [13] | 6 | Not Started | |
-| MENU-004 | Deterministic ordering of items and categories [29] | 6 | Not Started | |
-| MENU-005 | Hidden items are removed and content reflows [12] | 6 | Not Started | |
-| MENU-006 | Sold Out and Hidden are independent states; treatment is not stored in data [12] | 6 | Not Started | |
-| MENU-007 | Optional logo per menu, imported into app-managed assets [D-2] | 6 | Not Started | |
-| MENU-008 | Missing/corrupt logo falls back safely and alerts the operator [22, D-2] | 6 | Not Started | |
+| MENU-001 | Menu: ID, Name, Header, Subtitle, Categories, Items, Theme [10] | 6 | Verified | Menu has Id, Name, Header, Subtitle, Logo, Categories, Items and Theme (template id, font, page seconds, page indicator); every field round-trips through its file (unit tests) and survived restarts live |
+| MENU-002 | Item: ID, Name, Description, Price (free text), Category, Visible, Sold Out, Featured, Sort Order [10] | 6 | Verified | Item has Id, Name, Description, Price, Category, Visible, Sold Out, Featured, Sort Order; all round-trip exactly, including prices such as "$12 / $16", "Market Price", "3 for $10" and non-ASCII text |
+| MENU-003 | Category: ID, Name, Visible, Sort Order [13] | 6 | Verified | Category has Id, Name, Visible, Sort Order; round-trip and ordering tests |
+| MENU-004 | Deterministic ordering of items and categories [29] | 6 | Verified | Order is SortOrder then stored position, so it is deterministic; add, move, remove and category moves keep sequences clean (unit tests) |
+| MENU-005 | Hidden items are removed and content reflows [12] | 6 | Implemented | MenuView leaves out hidden items and items of hidden categories, drops a category header when nothing in it is visible, and puts items back in place when unhidden (unit tests). The visual reflow itself is drawn in Phase 7 |
+| MENU-006 | Sold Out and Hidden are independent states; treatment is not stored in data [12] | 6 | Verified | Sold out and hidden are separate flags; sold-out items stay in the view, flagged; the data holds no treatment (unit tests) |
+| MENU-007 | Optional logo per menu, imported into app-managed assets [D-2] | 6 | Verified | Logo chosen through the real file dialog was copied into the app assets folder as a content-hash name, kept after the original was deleted (test), reused when the same picture is imported twice, and restored after restart. PNG/JPEG/BMP/GIF only, decided from content, 20 MB limit. Drawing the logo is Phase 7 |
+| MENU-008 | Missing/corrupt logo falls back safely and alerts the operator [22, D-2] | 6 | Implemented | A missing logo is detected and reported on the menu card (unit tests); the text-header fallback is drawn in Phase 7 |
+| MENU-009 | A screen shows a menu by id; assignment is independent of the layout, two screens may share a menu, and a missing menu is flagged but never cleared [D-31] | 6 | Verified | Validator tests; live: assigned, restarted, deleted the menu, the screen was flagged and screens.json kept the id |
+| MENU-010 | One file per menu with atomic save, backups and recovery; one damaged file cannot affect the others and is never replaced by an empty menu [D-28] | 6 | Verified | Store tests and live: backed-up menu restored with a notice; a damaged menu with no backup was reported and kept as .corrupt |
+| MENU-011 | Deleting a menu moves its file to a trash folder and asks first, naming the screens that use it [D-28, D-31] | 6 | Verified | Store tests; live dialog accepted with Y, file in trash |
+| MENU-012 | Menu load problems and recoveries are shown to the operator at startup and in the Menus tab | 6 | Verified | Live: both messages shown in the startup banner |
+| MENU-013 | Items may be uncategorized; an item pointing at a missing category is treated as uncategorized and reported [D-29] | 6 | Verified | Ordering, view and validator tests |
+| MENU-014 | Menus tab: list, create, create sample, rename, header, subtitle, logo, delete; saved automatically [D-32] | 6 | Verified | Live UI tests. Category and item editing is Phase 8 |
+| MENU-015 | A sample "Festival Food" menu (3 categories, 10 items) is available for reviewing templates [D-32] | 6 | Verified | Unit tests and live creation |
 
 ## Rendering (RENDER)
 | ID | Requirement | Phase | Status | Evidence |
@@ -151,10 +158,10 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PERSIST-002 | Atomic save: temp file, validate, replace [19] | 1 | Verified | JsonFileStore tests incl. leftover .tmp and invalid-save refusal. Real power-loss not testable; logic verified |
 | PERSIST-003 | Keep backups of last known-good files (last 10) [19, D-1] | 1 | Verified | Backup creation and pruning tests |
 | PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
-| PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | In Progress | Settings and screen layout persisted (screens.json); menus, categories, items and themes arrive in Phase 6 |
-| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | AppSettings has schema version and rejects newer files |
+| PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | Verified | Settings, display choices, screens, screen-to-menu assignments, menus, categories, items and theme all persist and restore (unit tests and live restarts) |
+| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | Every file carries a schema version and a newer file is refused and kept. Backing up before a migration is not built because no migration exists yet; it will be added with the first schema change |
 | PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Not Started | |
-| PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Not Started | |
+| PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Verified | Imported images live in %APPDATA%\LedMenu\assets; only a plain file name is stored in a menu; names that could point elsewhere are refused |
 
 ## Reliability and logging (REL / LOG)
 | ID | Requirement | Phase | Status | Evidence |

@@ -6,6 +6,7 @@ using LedMenu.App.Output;
 using LedMenu.App.ViewModels;
 using LedMenu.Core.Display;
 using LedMenu.Core.Logging;
+using LedMenu.Core.Menus;
 using LedMenu.Core.Models;
 using LedMenu.Core.Screens;
 using LedMenu.Persistence;
@@ -20,6 +21,7 @@ public partial class App : Application
     private AppSettings _settings = new();
     private JsonFileStore<ScreenLayout>? _screensStore;
     private ScreenLayout _screenLayout = new();
+    private MenuLibrary? _menuLibrary;
     private DisplaysViewModel? _displays;
     private OutputController? _controller;
     private StopHotKey? _hotKey;
@@ -69,6 +71,10 @@ public partial class App : Application
         _log.Info($"Screen layout loaded: {screensLoad.Status}, {_screenLayout.Screens.Count} screen(s)");
         if (screensLoad.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure && screensLoad.Message != null)
             notices.Add("Screens: " + screensLoad.Message);
+        var assets = new AssetStore(paths.Assets, _log);
+        _menuLibrary = new MenuLibrary(new FileMenuStore(paths, _log), _log);
+        _menuLibrary.Load();
+        foreach (var issue in _menuLibrary.LoadIssues) notices.Add("Menus: " + issue.Message);
         var notice = notices.Count > 0 ? string.Join("\n", notices) : null;
 
         // Diagnostic mode: LedMenu.App.exe --dump-calibration <folder> [WIDTHxHEIGHT]
@@ -102,13 +108,15 @@ public partial class App : Application
         _controller = new OutputController(_log);
         _hotKey = new StopHotKey(hwnd, _log);
 
+        var menus = new MenusViewModel(_menuLibrary, assets, _log, PickImage, ConfirmDeleteMenu);
         var screens = new ScreensViewModel(
             _screenLayout, SaveScreens, _log,
             canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
-            confirmRemove: ConfirmRemoveScreen);
+            confirmRemove: ConfirmRemoveScreen,
+            menus: menus);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
         var output = new OutputViewModel(_controller, _displays, screens, _hotKey, _log, ConfirmStart);
-        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens);
+        window.DataContext = new MainViewModel(paths.Root, version, notice, _displays, output, screens, menus);
 
         // Diagnostic mode: LedMenu.App.exe --selftest-output <report file>
         var args = e.Args;
@@ -123,6 +131,20 @@ public partial class App : Application
             });
         }
     }
+
+    private string? PickImage()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose a logo image",
+            Filter = "Images (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files (*.*)|*.*",
+            CheckFileExists = true,
+        };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private bool ConfirmDeleteMenu(string text, string title) =>
+        MessageBox.Show(text, title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
 
     private void SaveScreens() => _screensStore?.Save(_screenLayout);   // errors are reported by the screens view model
 

@@ -10,6 +10,7 @@ public enum IssueCode
     NegativePosition,
     OutsideCanvas,
     Overlap,
+    MissingMenu,
 }
 
 public sealed record ScreenIssue(Guid ScreenId, Guid? OtherScreenId, IssueCode Code, IssueSeverity Severity, string Message);
@@ -20,16 +21,22 @@ public sealed record ScreenIssue(Guid ScreenId, Guid? OtherScreenId, IssueCode C
 /// - A screen extending past the canvas is an Error when enabled (a Warning when disabled); it is never clipped.
 /// - Overlap between two enabled screens is a Warning; overlap is allowed.
 /// - Disabled screens take no part in overlap checks or rendering.
+/// - A screen assigned to a menu that is not in the known set gets a warning (the assignment is never removed).
 /// - If the canvas size is unknown (no output display selected) bounds cannot be checked.
 /// </summary>
 public static class ScreenValidator
 {
-    public static IReadOnlyList<ScreenIssue> Validate(IReadOnlyList<Screen> screens, CanvasSize? canvas)
+    public static IReadOnlyList<ScreenIssue> Validate(
+        IReadOnlyList<Screen> screens, CanvasSize? canvas, IReadOnlySet<Guid>? knownMenuIds = null)
     {
         var issues = new List<ScreenIssue>();
 
         foreach (var s in screens)
         {
+            if (knownMenuIds != null && s.AssignedMenuId is { } menuId && !knownMenuIds.Contains(menuId))
+                issues.Add(new(s.Id, null, IssueCode.MissingMenu, IssueSeverity.Warning,
+                    "The assigned menu no longer exists or could not be loaded. The assignment is kept; choose another menu or restore the file."));
+
             if (string.IsNullOrWhiteSpace(s.Name))
                 issues.Add(new(s.Id, null, IssueCode.EmptyName, IssueSeverity.Warning, "This screen has no name."));
 
