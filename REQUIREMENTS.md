@@ -161,10 +161,10 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
 | OPS-001 | Blackout: all output pure black, operator stays live, state preserved, toggle off restores [18] | 10 | Implemented | BLACKOUT button and toggle: the LED output is given pure black while the menus, screens, mode and page clock underneath are untouched; ending it restores them. 6 rule tests (BlackoutState). Live run: IsBlackout, preview going black, staying black through a mode change, and clearing on Stop all behaved correctly. The pixel capture of the real screen could not be used in this session (it returned one flat colour for every pixel), so "the wall is pure #000000" is not yet confirmed on hardware |
-| OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Implemented | Ctrl+Shift+B is a system-wide hotkey while output is running (like Stop), plus an in-window binding. A first version had only the in-window binding and the user reported it did nothing when another window had focus. Live: with another program in front, a real Ctrl+Shift+B keystroke toggled blackout (log "Blackout ON"); with the operator window in front it also worked. Not yet re-checked by the user |
+| OPS-002 | Blackout shortcut Ctrl+Shift+B [18, D-6] | 10 | Verified | System-wide Ctrl+Shift+B while output runs. Real keystroke with another program focused toggled blackout (log); user confirmed on their setup (2026-10-07) |
 | OPS-003 | Operator UI clearly shows blackout is active [18] | 10 | Implemented | Red banner above the output controls, the BLACKOUT button turns red and reads "END BLACKOUT", the chip reads OUTPUT: BLACKOUT and the preview badge reads BLACKOUT. Not yet seen by a person |
-| OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Implemented | Ctrl+Shift+I toggles Identify Screens. In-window version verified in Phase 5; the user then found it did nothing with another window focused, so it is now system-wide while output is running (like Stop and Blackout). Live: a real keystroke with another program in front switched the output to Identify Screens. Not yet re-checked by the user |
-| OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Verified | Global Ctrl+Shift+F12 stopped output with another app focused and when output covered the operator window |
+| OPS-004 | Identify shortcut Ctrl+Shift+I [26, D-6] | 10 | Verified | System-wide Ctrl+Shift+I while output runs. Real keystroke with another program focused switched to Identify Screens (log); user confirmed (2026-10-07) |
+| OPS-005 | Stop Output shortcut Ctrl+Shift+F12 closes the output without quitting [27, D-6] | 10 | Verified | System-wide Ctrl+Shift+F12 stops output without quitting; confirmed in Phase 3 and again by the user with the other shortcuts (2026-10-07) |
 | OPS-006 | App always starts live, not blacked out [D-5] | 10 | Verified | Blackout is never saved and is cleared whenever output stops: unit test, and live: after Stop while blacked out, IsBlackout was False and the next start showed the normal picture |
 | OPS-007 | Never create a fullscreen state the operator cannot leave [27] | 10 | Verified | Output on the same display as the operator window: warning shown, then Ctrl+Shift+F12 recovered; also Stop button and Esc on the focused output window |
 | OPS-008 | Output status chip: LIVE / STOPPED / BLACKOUT / NO DISPLAY [D-1] | 10 | Implemented | LIVE, STOPPED, NO DISPLAY, CONFIRM DISPLAY and now BLACKOUT. Not yet seen by a person |
@@ -199,9 +199,9 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 ## Packaging (PKG)
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| PKG-001 | Self-contained release build, runnable from a folder/desktop [D-5] | 13 | Not Started | |
-| PKG-002 | Clean-machine startup test [31] | 13 | Not Started | Human verification required |
-| PKG-003 | Operator documentation [31] | 13 | Not Started | |
+| PKG-001 | Self-contained release build, runnable from a folder/desktop [D-5] | 13 | Verified | tools\publish.ps1 produces dist\LedMenuControl (win-x64, self-contained, 161 MB, 472 files) and a 67 MB zip, and refuses to finish if the runtime, exe, fonts or documents are missing. The published copy was started from a folder with spaces in its name, with no dotnet on PATH and no DOTNET_ROOT, and a fresh data folder: it stayed up and responsive, logged startup, found the bundled Lato font, created its data and logged no errors or warnings |
+| PKG-002 | Clean-machine startup test [31] | 13 | Implemented | Automated stand-in passed (see PKG-001). Still needs a real clean machine: copy the zip to a PC that has never had .NET or this program and follow READ_ME_FIRST.txt |
+| PKG-003 | Operator documentation [31] | 13 | Implemented | OPERATOR_GUIDE.html (setup, everyday use, running the wall, blackout, shortcuts, troubleshooting table, files/backup/moving PCs, wall notes) and READ_ME_FIRST.txt ship in the folder. Needs the user to read it for accuracy and clarity |
 
 
 ## Backlog: Video Screen / Playlist (VID) — post-menu, NOT scheduled, NOT started

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LED Menu Control – Operator Guide</title>
+<style>
+  :root { --fg:#1b1b1b; --muted:#555; --bg:#fff; --card:#f4f4f4; --accent:#b23a3a; --line:#d0d0d0; }
+  @media (prefers-color-scheme: dark) { :root { --fg:#ececec; --muted:#a8a8a8; --bg:#1c1c1c; --card:#272727; --line:#444; } }
+  body { font: 16px/1.5 "Segoe UI", system-ui, sans-serif; color:var(--fg); background:var(--bg); max-width: 52rem; margin: 2rem auto; padding: 0 1.25rem 4rem; }
+  h1 { font-size: 1.9rem; margin-bottom: .2rem; }
+  h2 { font-size: 1.3rem; margin-top: 2.2rem; border-bottom: 2px solid var(--line); padding-bottom: .25rem; }
+  h3 { font-size: 1.05rem; margin-top: 1.4rem; }
+  .sub { color: var(--muted); margin-top: 0; }
+  .card { background: var(--card); border-radius: 8px; padding: .8rem 1.1rem; margin: 1rem 0; }
+  .card.warn { border-left: 5px solid var(--accent); }
+  kbd { font: 600 .92em Consolas, monospace; background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: .05rem .4rem; white-space: nowrap; }
+  code { font-family: Consolas, monospace; background: var(--card); padding: 0 .25rem; border-radius: 3px; }
+  b.btn { font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; margin: .8rem 0; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  ol li, ul li { margin: .25rem 0; }
+  @media print { body { max-width: none; margin: 0; } h2 { break-after: avoid; } .card, table { break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<h1>LED Menu Control</h1>
+<p class="sub">Operator guide &mdash; for the person running the menu board at an event</p>
+
+<div class="card warn">
+  <b>If anything ever looks wrong on the LED wall:</b>
+  press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd> to <b>stop output</b>, or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> for a
+  <b>blackout</b> (pure black, one press to bring it back). Neither deletes or changes anything.
+  These work even when another program is in front, as long as output is running.
+</div>
+
+<h2>1. What this program does</h2>
+<p>
+  It shows your menus on the LED wall. The PC sends a picture to the wall's controller (the Mirackle VP2) over HDMI,
+  exactly like a second monitor. You choose what is on the wall in this program's window on your normal screen;
+  changes appear on the wall straight away. There is no &ldquo;publish&rdquo; step.
+</p>
+<p>Three words to know:</p>
+<ul>
+  <li><b>Display</b> &ndash; a monitor or the LED controller, as Windows sees it. One of them is the <b>LED output</b>.</li>
+  <li><b>Screen</b> &ndash; a rectangle inside the LED picture, usually one section of the wall. A common one is <b>336&times;672</b> (the left two panels) or <b>168&times;672</b> (one panel column). You can have several screens, each with its own menu.</li>
+  <li><b>Menu</b> &ndash; the content: a header, optional logo, categories and items with prices. A menu is shown by assigning it to a screen.</li>
+</ul>
+
+<h2>2. First-time setup (once per wall)</h2>
+<p>Do this at your desk before the event. The settings are remembered.</p>
+<ol>
+  <li><b>Connect and set up Windows.</b> Plug the PC's HDMI into the VP2. In Windows <i>Settings &rarr; System &rarr; Display</i>, choose <i>Extend these displays</i>, set the LED display to <b>1920 &times; 1080</b> and keep your normal monitor as the main display. With the VP2's scaling switched off, the wall shows the <b>top-left corner</b> of that picture at 1:1, one picture pixel per LED.</li>
+  <li><b>Choose the LED display.</b> Open the <b>Displays</b> tab. Click <b>Identify Displays</b> to see a number on each monitor, then click <b>Use as LED Output</b> on the card for the LED display. (<b>Use as Operator Display</b> marks the screen you work on; this helps the program warn you if output would cover it.) The program remembers each display by its device ID, so Windows renumbering displays does not confuse it.</li>
+  <li><b>Make the screens.</b> Open the <b>Screens</b> tab. Click <b>Add Screen (336&times;672)</b> or <b>Add Screen (168&times;672)</b>. The numbers X, Y, Width and Height are the real settings; dragging in the picture only fills them in. Put the screen where the matching panels are (the wall's first panel is at X=0, Y=0). Screens that are wrong are flagged and left exactly as you typed them. <b>Enabled</b> switches a screen on or off without losing its settings.</li>
+  <li><b>Check the alignment.</b> Press <b>Start Output</b>, choose <b>Screen Calibration</b> under <i>Output shows</i>, and look at the wall: every screen gets a border, corner markers and a centre cross. If an edge or corner is missing, the screen is not where you think it is. <b>Output Canvas Calibration</b> shows the whole 1920&times;1080 picture with rulers, which tells you how much of it the wall actually shows. Choose <b>Normal Output</b> when done.</li>
+  <li><b>Create or choose a menu.</b> Open the <b>Menu Library</b> tab. <b>New Menu</b> makes an empty one (or add a sample to try things out). Set its name, header, subtitle, logo (<b>Set Logo&hellip;</b>), seconds per page and whether to show page numbers.</li>
+  <li><b>Put the menu on a screen.</b> Back on the <b>Screens</b> tab, pick the menu in the screen's menu box.</li>
+  <li><b>Fill in the menu.</b> See section 3.</li>
+</ol>
+
+<h2>3. Everyday use: the Menu tab</h2>
+<p>This is the tab that opens when you start the program. Pick the menu at the top. Each item is one row:</p>
+<table>
+  <tr><th>Control</th><th>What it does</th></tr>
+  <tr><td>Price box</td><td>Type a new price. It is free text: <code>$12</code>, <code>$12 / $16</code>, <code>3 for $10</code>, <code>Market Price</code>.</td></tr>
+  <tr><td><b class="btn">Sold Out</b> / <b class="btn">Back in Stock</b></td><td>Marks the item sold out (red badge, dimmed, struck through) without moving anything. Press again to undo.</td></tr>
+  <tr><td><b class="btn">Hide</b> / <b class="btn">Show</b></td><td>Removes an item from the wall entirely (the rest moves up); Show brings it back in the same place.</td></tr>
+  <tr><td><b class="btn">Edit</b></td><td>Name, description, <b>Featured</b>, category, move up/down, delete.</td></tr>
+  <tr><td><b class="btn">Add Item</b> / <b class="btn">Add Category</b></td><td>New entries. A category can be hidden (<b>Hide Category</b>) with all its items.</td></tr>
+</table>
+<p><b>Everything saves by itself</b>: buttons save at once, typing saves half a second after you stop. Closing the program saves anything still waiting. If a save fails (disk full, file locked) a red notice says so, the change stays on screen, and the program keeps retrying.</p>
+<p>If a menu is longer than the screen, it is split into <b>pages</b> that rotate on the wall (the Menu Library sets how many seconds each page stays). Items are never cut in half and a heading is never left alone at the bottom of a page. A notice at the top of the Menu tab tells you if a single item is too big to fit.</p>
+
+<h2>4. Running the wall</h2>
+<h3>Start and stop</h3>
+<p><b>Start Output</b> opens the LED picture on the LED display and covers it completely. The badge at the top right shows <b>OUTPUT: LIVE</b>. <b>Stop Output</b> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd>) closes it again; your menus and settings are not affected. The program always starts <i>stopped</i> and never starts in blackout. If the operator window is on the same display as the LED output, you are warned before output starts.</p>
+<h3>The preview</h3>
+<p>The panel on the right shows exactly the picture that goes to the wall (it is the same picture, not a copy). Choose <i>Whole output</i> or one screen, and a zoom: <i>Fit</i>, or <i>100% actual pixels</i> up to 400%, where every LED is a clear square. The badge shows LIVE, STOPPED or BLACKOUT. You can check a menu without starting output.</p>
+<h3>Blackout</h3>
+<p>The red <b>BLACKOUT</b> button (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>) turns the whole wall pure black. While it is on: a red banner appears, the badge says <b>OUTPUT: BLACKOUT</b>, the button reads <b>END BLACKOUT</b>, and the preview is black. Your menus keep updating behind it, so ending blackout shows what is current. Stopping output always clears blackout.</p>
+<h3>Test patterns</h3>
+<table>
+  <tr><th>Output shows</th><th>Use it for</th></tr>
+  <tr><td>Normal Output</td><td>The menus. This is the mode to run the event in.</td></tr>
+  <tr><td>Identify Screens</td><td>Draws each screen's number and outline for 15 seconds, then returns to Normal. (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>)</td></tr>
+  <tr><td>Screen Calibration</td><td>Borders, corners and a centre cross on every screen; stays until you change it.</td></tr>
+  <tr><td>Output Canvas Calibration</td><td>The whole picture with rulers and markers, to see how much of it the wall shows.</td></tr>
+</table>
+<p>A purple banner reminds you whenever a test pattern is on the wall. Stopping output always returns to Normal Output.</p>
+
+<h2>5. Keyboard shortcuts</h2>
+<table>
+  <tr><th>Keys</th><th>Action</th></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd></td><td>Blackout on / off</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd></td><td>Identify screens (15 seconds)</td></tr>
+  <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd></td><td>Stop output (emergency recovery)</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Stop output &ndash; only when the LED window itself has focus (it never takes focus on its own)</td></tr>
+</table>
+<p>The three <kbd>Ctrl</kbd>+<kbd>Shift</kbd> shortcuts work from any program while output is running. None of them can delete anything.</p>
+
+<h2>6. When something goes wrong</h2>
+<table>
+  <tr><th>What you see</th><th>What it means and what to do</th></tr>
+  <tr><td>Badge says <b>NO DISPLAY</b> or <b>CONFIRM DISPLAY</b></td><td>The LED display is not connected, or Windows changed its ID. Reconnect it, or on the Displays tab confirm it. The program <b>never</b> uses a different display on its own.</td></tr>
+  <tr><td>Output stopped by itself and a message says the display is no longer available</td><td>The LED display was unplugged or switched off. Output stops rather than jumping to another monitor. When the <i>same</i> display comes back, output restarts by itself and says so. If you pressed Stop yourself it will not restart on its own.</td></tr>
+  <tr><td>A screen on the wall is black</td><td>It is disabled, has no menu, its menu was deleted, it hangs outside the picture, or its menu failed to draw (a warning names it). Other screens are not affected.</td></tr>
+  <tr><td>Amber notice about a logo or font</td><td>The logo file is missing or unreadable, or a font fell back to a system font. The menu is still shown without the logo. Re-select the logo in the Menu Library.</td></tr>
+  <tr><td>Red notice: &ldquo;The menu could not be saved&rdquo;</td><td>Disk full or file locked. Your change is still on screen and the program retries every few seconds and when you close it. Free up space or close whatever has the file open.</td></tr>
+  <tr><td>Banner at start saying data was recovered</td><td>A data file was damaged (for example by a power cut). The latest good backup was restored automatically; the damaged file was kept beside it. Check your menus.</td></tr>
+  <tr><td>A &ldquo;Something went wrong&rdquo; dialog</td><td>The program caught an unexpected error and is still running. Details are in the log. The same error will not pop up again for two minutes.</td></tr>
+</table>
+
+<h2>7. Your files, backups and moving to another PC</h2>
+<ul>
+  <li>Everything you create lives in <code>%APPDATA%\LedMenu</code> (paste that into the Explorer address bar): <code>menus</code> (one file per menu), <code>settings.json</code>, <code>screens.json</code>, <code>assets</code> (logos), <code>backups</code>, <code>trash</code> (deleted menus, recoverable) and <code>logs</code>.</li>
+  <li><b>To back up or move to another PC:</b> close the program and copy the whole <code>LedMenu</code> folder. On the new PC put it in the same place, or set the Windows environment variable <code>LEDMENU_DATA_DIR</code> to the folder you want to use.</li>
+  <li><b>To update the program:</b> replace the program folder with the new one. Your menus are not in it.</li>
+  <li>The program keeps the ten most recent backups of each data file, writes files safely (never half-written), and never deletes a damaged file.</li>
+  <li>The log (<code>logs</code> folder, one file per day, kept 14 days) is what to send when asking for help.</li>
+</ul>
+
+<h2>8. About the wall (technical notes)</h2>
+<ul>
+  <li>Tested with a Mirackle VP2: with a 1920&times;1080 Windows signal and scaling off, the wall shows the upper-left of the picture at 1:1. Each panel is 168&times;336 pixels. A 336&times;672 screen at X=0, Y=0 fills the leftmost 2&times;2 panels exactly; a 168&times;672 screen at X=0 fills the leftmost 1&times;2 column.</li>
+  <li>Each menu is drawn at the screen's own pixel size, never stretched from a bigger picture, so text stays crisp. The built-in layout is designed for 336&times;672 and also fits 168&times;672.</li>
+  <li>The font is Lato (bundled, SIL Open Font License).</li>
+</ul>
+
+</body>
+</html>

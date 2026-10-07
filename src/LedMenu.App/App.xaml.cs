@@ -39,7 +39,8 @@ public partial class App : Application
         // If the operator window closes, the app must end; a leftover fullscreen output window would strand the operator.
         ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-        _singleInstance = new Mutex(true, @"Local\LedMenuControl.SingleInstance", out var isFirst);
+        var paths = AppPaths.Default();
+        _singleInstance = new Mutex(true, @"Local\LedMenuControl.SingleInstance." + paths.InstanceKey, out var isFirst);
         if (!isFirst)
         {
             MessageBox.Show("LED Menu Control is already running.", "LED Menu Control",
@@ -49,7 +50,6 @@ public partial class App : Application
             return;
         }
 
-        var paths = AppPaths.Default();
         paths.EnsureCreated();
         _log = new FileLog(paths.Logs);
         InstallExceptionHandlers();

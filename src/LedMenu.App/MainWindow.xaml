@@ -132,7 +132,7 @@
             </Border>
         </StackPanel>
 
-        <!-- Displays and Screens (menu editing and preview arrive in later phases) -->
+        <!-- Tabs -->
         <Grid Grid.Row="2" Margin="16,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -492,7 +492,7 @@
                             </ItemsControl>
                         </DockPanel>
                         <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                   Text="A menu is content only: a name, header, optional logo, categories and items. It is shown on a screen by choosing it in the Screens tab, so the same menu can move to another screen without changing the screen layout. Changes save automatically. Adding and editing categories and items arrives in a later phase."/>
+                                   Text="A menu is content only: a name, header, optional logo, categories and items. It is shown on a screen by choosing it in the Screens tab, so the same menu can move to another screen without changing the screen layout. Changes save automatically. Edit categories and items on the Menu tab."/>
 
                         <Border Background="#FF8A5A00" Padding="12,8" Margin="0,0,0,8"
                                 Visibility="{Binding HasLoadNotice, Converter={StaticResource BoolToVis}}">

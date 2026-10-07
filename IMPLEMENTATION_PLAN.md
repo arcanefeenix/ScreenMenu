@@ -100,8 +100,13 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Changes to the program:** renderer failures isolated per screen; output restarts when its own display returns; failed saves retry; dialog throttling; menu-render problems now also reach the log. The renderer and the persistence layer needed no changes: they passed every hostile case on the first run.
 **Not verified:** a repeating unhandled exception on screen (REL-002). The monitor unplug and replug (OUT-006) was confirmed by the user.
 
-## Phase 13
-As in the spec (sections 31 and 32): a self-contained folder publish with operator documentation and a clean-machine test.
+## Phase 13 — Packaging (complete)
+**Scope:** release build, packaging, clean-start test, operator documentation.
+**Requirements:** PKG-001 Verified; PKG-002 and PKG-003 Implemented (a real clean PC and a read-through by the user are the remaining checks). OPS-002, 004 and 005 Verified by the user.
+**Delivered:** `tools\publish.ps1` (publish, add documents and samples, check required files, zip, smoke test); `docs\OPERATOR_GUIDE.html`; `docs\READ_ME_FIRST.txt`; data-folder override `LEDMENU_DATA_DIR`; single-instance lock per data folder; stale 'later phase' wording removed from the Menu Library tab.
+**Tests:** 5 new (data-folder override and instance key). Full suite 590 passing in Release; build with warnings as errors clean. Smoke test of the published copy: passed.
+**Not verified:** a PC that has never had .NET or this program. Human check: copy `dist\LedMenuControl-0.1.0.zip` to such a PC, unzip it anywhere (the desktop is fine), double-click `LedMenu.App.exe`, and follow `OPERATOR_GUIDE.html` section 2 with the real wall. Windows SmartScreen may warn about an unsigned program the first time (More info, Run anyway); signing is not done.
+**Not in this phase:** an installer, a program icon, code signing, auto-update.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.
