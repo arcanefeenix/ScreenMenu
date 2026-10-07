@@ -87,8 +87,14 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Not verified:** the real-screen pixel capture returned one flat colour for every pixel in this session (the same failure that blanked window screenshots), so the live pixel comparisons, old and new, could not be used. Human check: start output on the LED, press Ctrl+Shift+B (with the operator window focused) and confirm the wall goes pure black and returns; confirm the red banner and chip; stop while blacked out and start again.
 **Not in this phase:** nothing from the spec for Phase 10 remains open apart from the human checks.
 
-## Phases 11–13
-As in the spec (sections 31 and 32): multiple screens, hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
+## Phase 11 — Multiple Screens (complete)
+**Scope:** prove and pin down multiple screen definitions, independent menu assignments and several rendered regions on one canvas. The screen editor, per-screen menu assignment and multi-screen drawing already existed from Phases 4, 6 and 7; this phase added the tests that make them dependable.
+**Requirements:** SCR-011 Implemented (needs a look on the LED with two screens).
+**Tests:** 9 new automated tests (real renderer, 2 to 4 screens). Full suite 520 passing; build with warnings as errors clean. No application code changed.
+**Not verified:** two screens on the physical LED wall. Human check: add a second 168x672 screen next to the first (Screens tab), give it a different menu (Menu Library or the screen's menu box), start output and confirm each shows its own menu and pages rotate independently.
+
+## Phases 12–13
+As in the spec (sections 31 and 32): hardening (monitor disconnect, corrupt-file drills, missing assets, log review, stress cases), and a self-contained folder publish with operator documentation and a clean-machine test.
 
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.
