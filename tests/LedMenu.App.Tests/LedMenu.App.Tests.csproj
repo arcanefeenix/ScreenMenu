@@ -22,6 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="media\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\LedMenu.App\LedMenu.App.csproj" />
     <ProjectReference Include="..\..\src\LedMenu.Core\LedMenu.Core.csproj" />
   </ItemGroup>

@@ -11,6 +11,9 @@ public enum IssueCode
     OutsideCanvas,
     Overlap,
     MissingMenu,
+    EmptyPlaylist,
+    MissingMedia,
+    VideoSizeMismatch,
 }
 
 public sealed record ScreenIssue(Guid ScreenId, Guid? OtherScreenId, IssueCode Code, IssueSeverity Severity, string Message);
@@ -23,17 +26,22 @@ public sealed record ScreenIssue(Guid ScreenId, Guid? OtherScreenId, IssueCode C
 /// - Disabled screens take no part in overlap checks or rendering.
 /// - A screen assigned to a menu that is not in the known set gets a warning (the assignment is never removed).
 /// - If the canvas size is unknown (no output display selected) bounds cannot be checked.
+/// - A video screen with nothing playable, a video whose file is gone, or a video whose size differs from the screen's gets a warning
+///   (the entries are kept; the size warning is there because the picture will be fitted or cropped instead of shown 1:1).
 /// </summary>
 public static class ScreenValidator
 {
     public static IReadOnlyList<ScreenIssue> Validate(
-        IReadOnlyList<Screen> screens, CanvasSize? canvas, IReadOnlySet<Guid>? knownMenuIds = null)
+        IReadOnlyList<Screen> screens, CanvasSize? canvas, IReadOnlySet<Guid>? knownMenuIds = null,
+        Func<string, bool>? mediaExists = null)
     {
         var issues = new List<ScreenIssue>();
 
         foreach (var s in screens)
         {
-            if (knownMenuIds != null && s.AssignedMenuId is { } menuId && !knownMenuIds.Contains(menuId))
+            if (s.ShowsVideo) ValidateVideo(s, mediaExists, issues);
+
+            if (!s.ShowsVideo && knownMenuIds != null && s.AssignedMenuId is { } menuId && !knownMenuIds.Contains(menuId))
                 issues.Add(new(s.Id, null, IssueCode.MissingMenu, IssueSeverity.Warning,
                     "The assigned menu no longer exists or could not be loaded. The assignment is kept; choose another menu or restore the file."));
 
@@ -90,6 +98,25 @@ public static class ScreenValidator
                 }
 
         return issues;
+    }
+
+    private static void ValidateVideo(Screen s, Func<string, bool>? mediaExists, List<ScreenIssue> issues)
+    {
+        if (!s.Playlist.Playable.Any())
+            issues.Add(new(s.Id, null, IssueCode.EmptyPlaylist, IssueSeverity.Warning,
+                s.Playlist.Items.Count == 0 ? "This video screen has no videos yet; it stays black."
+                                            : "Every video on this screen is switched off; it stays black."));
+
+        foreach (var v in s.Playlist.Items)
+        {
+            var label = string.IsNullOrWhiteSpace(v.DisplayName) ? v.FileName : v.DisplayName;
+            if (mediaExists != null && !mediaExists(v.FileName))
+                issues.Add(new(s.Id, null, IssueCode.MissingMedia, IssueSeverity.Warning,
+                    $"The video \"{label}\" is missing from the media folder; it will be skipped."));
+            else if (v.Width > 0 && v.Height > 0 && s.Width > 0 && s.Height > 0 && (v.Width != s.Width || v.Height != s.Height))
+                issues.Add(new(s.Id, null, IssueCode.VideoSizeMismatch, IssueSeverity.Warning,
+                    $"The video \"{label}\" is {v.Width}×{v.Height} but this screen is {s.Width}×{s.Height}, so it will be {(s.Playlist.Fit == VideoFit.Fill ? "scaled and cropped" : "scaled to fit")} instead of shown 1:1."));
+        }
     }
 
     /// <summary>Screens that are allowed to draw: enabled and free of errors.</summary>

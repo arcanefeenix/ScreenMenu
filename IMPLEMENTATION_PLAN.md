@@ -108,6 +108,16 @@ Commands: `dotnet build LedMenu.sln -warnaserror` and `dotnet test LedMenu.sln`.
 **Clean-machine check (passed, user, 2026-10-07):** copy `dist\LedMenuControl-0.1.0.zip` to such a PC, unzip it anywhere (the desktop is fine), double-click `LedMenu.App.exe`, and follow `OPERATOR_GUIDE.html` section 2 with the real wall. Windows SmartScreen may warn about an unsigned program the first time (More info, Run anyway); signing is not done.
 **Not in this phase:** an installer, a program icon, code signing, auto-update.
 
+## Video Screen / Playlist (approved 2026-10-07; in progress)
+Decoder decided by feasibility test (VIDEO_FEASIBILITY.md, D-49). Steps, each ending with a stop for review:
+1. **Data and import (done).** Screen content kind and playlist model, screens.json schema 2 with backup-before-migration, media folder and `MediaStore` with Windows-decoder test-open, validator warnings (empty playlist, missing media, size mismatch). 66 new tests (Core 27, Persistence 25, real-decoder 8, plus supporting); full suite 650 passing in Release; build with warnings as errors clean. Live: a v1 screens file was upgraded by the real app with the original kept. Not yet verified with the user's own video (no UI to import it yet).
+2. Playback engine: playlist sequencer (loop, previous/next, enable/disable, skip bad video), Windows player wrapper that grabs frames for the video rectangle only, levels expansion, native/Fit/Fill placement, early load of the next clip.
+3. Output integration: video and menu screens simultaneously, strict clipping, blackout/test patterns/preview, failure isolation per screen.
+4. Operator screen: Menu or Video per screen, playlist editor (import, reorder, enable/disable), previous/next, play/pause, mute; guide updated.
+5. Hardware check with a 168x672 menu screen and a 168x672 video screen together, then a long soak.
+
+Original backlog record follows.
+
 ## Backlog (post-menu, not scheduled): Video Screen / Playlist
 Recorded as requirements VID-001 to VID-015 and decision D-40. A Screen would show either Menu or Video/Playlist content (first use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist), using local media only, with import, multi-video playlists, reorder, enable/disable, looping, Previous/Next, mute (muted by default), Fit/Fill, native-size playback without scaling, strict clipping to the Screen rectangle, simultaneous operation with menu screens, and safe failure on missing or corrupt media. **Not started and not in the current phase plan.** To be revisited after Phase 13 or when the user asks.
 

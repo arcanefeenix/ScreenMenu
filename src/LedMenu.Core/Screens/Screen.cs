@@ -15,10 +15,24 @@ public sealed class Screen
     public int Height { get; set; }
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Menu shown on this screen. Menus arrive in a later phase; the reference is preserved now.</summary>
+    /// <summary>Whether this screen shows a menu or a video playlist.</summary>
+    public ScreenContentKind ContentKind { get; set; } = ScreenContentKind.Menu;
+
+    /// <summary>Menu shown on this screen when <see cref="ContentKind"/> is Menu. Kept even while the screen shows video.</summary>
     public Guid? AssignedMenuId { get; set; }
 
-    public Screen Clone() => (Screen)MemberwiseClone();
+    /// <summary>Videos shown on this screen when <see cref="ContentKind"/> is Video. Kept even while the screen shows a menu.</summary>
+    public VideoPlaylist Playlist { get; set; } = new();
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool ShowsVideo => ContentKind == ScreenContentKind.Video;
+
+    public Screen Clone()
+    {
+        var copy = (Screen)MemberwiseClone();
+        copy.Playlist = Playlist.Clone();
+        return copy;
+    }
 }
 
 /// <summary>Convenience sizes only. Nothing in the model or the validator depends on these.</summary>

@@ -177,7 +177,7 @@ Status values: **Not Started** → **In Progress** → **Implemented** (code exi
 | PERSIST-003 | Keep backups of last known-good files (last 10) [19, D-1] | 1 | Verified | Backup creation and pruning tests |
 | PERSIST-004 | Corrupt file: recover from backup, keep corrupt copy, never silently reset [22] | 1 | Verified | Recovery tests (corrupt, missing, invalid, no backup) |
 | PERSIST-005 | Persist settings, display config, screens, menus, categories, items, assignments, theme [19] | 6 | Verified | Settings, display choices, screens, screen-to-menu assignments, menus, categories, items and theme all persist and restore (unit tests and live restarts) |
-| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | In Progress | OPEN BY DESIGN: every file carries a schema version and a newer file is refused and kept. Backup before a migration will be added with the first schema change; no migration exists yet |
+| PERSIST-006 | Schema version in every file; backup before migration [D-1] | 6 | Verified | Every file carries a schema version; a newer file is refused and kept. Backup before migration now exists and is used: screens.json v1 to v2 keeps a byte-identical copy (screens.premigration-v1-to-v2-*.bak, never pruned, never mistaken for an ordinary backup), is skipped if that copy cannot be made, and old backups restored after damage are upgraded too. 6 tests, and live in the app: v1 file in, v2 out, original kept, menu assignment intact |
 | PERSIST-007 | Autosave: discrete actions immediate, text edits debounced ~500 ms, flush on exit [21] | 8 | Verified | Quick actions save at once; typed text saves once after a 500 ms pause (burst of 6 keystrokes = 1 write); focus leaving a box, switching menu or tab, and program exit flush anything waiting. 9 Core and 10 view-model tests; live: price stayed old on disk while typing and became the new value after the pause; typed text then window closed at once was saved |
 | PERSIST-008 | Assets copied into app-managed folder [20] | 6 | Verified | Imported images live in %APPDATA%\LedMenu\assets; only a plain file name is stored in a menu; names that could point elsewhere are refused |
 
@@ -209,21 +209,21 @@ Recorded at the user's request as a future feature only. Nothing here is impleme
 
 | ID | Requirement | Phase | Status | Evidence |
 |---|---|---|---|---|
-| VID-001 | A configured Screen can show either Menu content or Video/Playlist content | Backlog | Not Started | |
+| VID-001 | A configured Screen can show either Menu content or Video/Playlist content | Video V1 | In Progress | Data model done: a screen has ContentKind (Menu or Video) and an embedded playlist; its menu assignment is kept while it shows video; video screens are excluded from menu drawing. Choosing the kind in the UI is step 4; drawing video is steps 2-3 |
 | VID-002 | Initial intended use: Screen 1 = 168x672 Menu, Screen 2 = 168x672 Video Playlist | Backlog | Not Started | |
-| VID-003 | Video uses local media files only; operation never depends on the Internet | Backlog | Not Started | |
-| VID-004 | Import local video files (into an app-managed media folder, like logo assets) | Backlog | Not Started | |
-| VID-005 | Multiple videos in a playlist | Backlog | Not Started | |
-| VID-006 | Reorder the playlist | Backlog | Not Started | |
-| VID-007 | Enable / disable individual videos | Backlog | Not Started | |
+| VID-003 | Video uses local media files only; operation never depends on the Internet | Video V1 | Implemented | Media is imported into the app media folder and played from there; nothing is fetched from a network. Verified fully once playback exists |
+| VID-004 | Import local video files (into an app-managed media folder, like logo assets) | Video V1 | Implemented | MediaStore.ImportAsync: streamed copy into %APPDATA%\LedMenu\media (hash-named, duplicates reused, disk-space and size checks), accepted only if the Windows decoder opens it, with size, length and audio recorded. 15 tests with a fake decoder, 8 with the real one on generated clips. No Import button yet (step 4) |
+| VID-005 | Multiple videos in a playlist | Video V1 | In Progress | Playlist model holds any number of videos (data and validation done; playing them in turn is step 2) |
+| VID-006 | Reorder the playlist | Video V1 | In Progress | Playlist order is the list order and is saved; reorder buttons come with the UI (step 4) |
+| VID-007 | Enable / disable individual videos | Video V1 | In Progress | Each video has an Enabled flag, saved, and the validator reports a screen whose videos are all off; skipping them while playing is step 2 |
 | VID-008 | Automatic continuous playback and looping | Backlog | Not Started | |
 | VID-009 | Manual Previous / Next controls | Backlog | Not Started | |
-| VID-010 | Mute / audio controls; muted playback likely the default | Backlog | Not Started | |
-| VID-011 | Fit / Fill behavior for media whose aspect ratio differs from the Screen | Backlog | Not Started | |
+| VID-010 | Mute / audio controls; muted playback likely the default | Video V1 | In Progress | Playlist is Muted by default (saved); the audio presence of each video is recorded at import; the mute control and playback are steps 2 and 4 |
+| VID-011 | Fit / Fill behavior for media whose aspect ratio differs from the Screen | Video V1 | In Progress | Fit and Fill setting stored on the playlist; screens whose video size differs get a warning; drawing is step 2 |
 | VID-012 | Native 168x672 media renders without scaling | Backlog | Not Started | |
 | VID-013 | Video is strictly clipped to its assigned Screen rectangle and never affects adjacent Screens | Backlog | Not Started | |
 | VID-014 | Menu rendering and video playback on separate Screens operate simultaneously | Backlog | Not Started | |
-| VID-015 | Missing or corrupt media fails safely without affecting other Screens | Backlog | Not Started | |
+| VID-015 | Missing or corrupt media fails safely without affecting other Screens | Video V1 | In Progress | Bad files are refused at import with a reason (truncated, garbage, wrong type, undecodable), and leave nothing behind; a playlist entry whose file later goes missing is flagged and kept. Playback-time failure handling is steps 2-3 |
 
 Note: spec section 33 originally listed video playback under "do not add unless explicitly requested". This is that explicit request, scheduled after the menu phases.
 

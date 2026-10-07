@@ -9,6 +9,8 @@ public enum LoadStatus
     Ok,
     /// <summary>No file existed; defaults were created (first run).</summary>
     CreatedDefault,
+    /// <summary>The file was written by an older version of the program; a copy of it was kept and it was upgraded.</summary>
+    Migrated,
     /// <summary>Main file was unusable; a backup was restored.</summary>
     RecoveredFromBackup,
     /// <summary>Main file and every backup were unusable; defaults were used. The corrupt file is preserved.</summary>
@@ -36,11 +38,18 @@ public sealed class JsonFileStore<T> where T : class
     private readonly Func<T?, string?> _validate;
     private readonly IAppLog _log;
     private readonly int _keepBackups;
+    private readonly Func<T, int>? _versionOf;
+    private readonly int _currentVersion;
+    private readonly Action<T>? _upgrade;
     private readonly object _gate = new();
 
     public JsonFileStore(string path, string backupDir, Func<T> createDefault,
-        Func<T?, string?>? validate = null, IAppLog? log = null, int keepBackups = 10)
+        Func<T?, string?>? validate = null, IAppLog? log = null, int keepBackups = 10,
+        Func<T, int>? versionOf = null, int currentVersion = 0, Action<T>? upgrade = null)
     {
+        _versionOf = versionOf;
+        _currentVersion = currentVersion;
+        _upgrade = upgrade;
         _path = path;
         _backupDir = backupDir;
         _createDefault = createDefault;
@@ -67,7 +76,11 @@ public sealed class JsonFileStore<T> where T : class
             }
 
             var problem = TryRead(_path, out var value);
-            if (problem == null) return new(value!, LoadStatus.Ok, null);
+            if (problem == null)
+            {
+                var migrated = MigrateIfOld(value!, _path);
+                return new(value!, migrated ? LoadStatus.Migrated : LoadStatus.Ok, null);
+            }
 
             _log.Error($"{Stem}: main file unusable ({problem}).");
             PreserveCorrupt();
@@ -154,6 +167,36 @@ public sealed class JsonFileStore<T> where T : class
         }
     }
 
+    /// <summary>
+    /// A file from an older version is copied aside first (never pruned, never mistaken for an ordinary backup),
+    /// then upgraded in memory and written back in the new format. Returns true if an upgrade happened.
+    /// </summary>
+    private bool MigrateIfOld(T value, string sourceFile)
+    {
+        if (_versionOf == null || _upgrade == null) return false;
+        var old = _versionOf(value);
+        if (old >= _currentVersion) return false;
+
+        try
+        {
+            Directory.CreateDirectory(_backupDir);
+            var keep = Path.Combine(_backupDir, $"{Stem}.premigration-v{old}-to-v{_currentVersion}-{DateTime.Now:yyyyMMdd-HHmmss-fff}.bak");
+            File.Copy(sourceFile, keep);
+            _log.Info($"{Stem}: older file format v{old}; original kept as {Path.GetFileName(keep)} before upgrading to v{_currentVersion}.");
+        }
+        catch (Exception ex)
+        {
+            // never upgrade (and so never overwrite) without a copy of the original
+            _log.Error($"{Stem}: could not keep a copy of the old-format file; leaving it alone.", ex);
+            return false;
+        }
+
+        _upgrade(value);
+        try { Save(value); }
+        catch (Exception ex) { _log.Warn($"{Stem}: upgraded in memory but could not write the new format yet; it will be written on the next save.", ex); }
+        return true;
+    }
+
     /// <summary>Newest first.</summary>
     private IEnumerable<string> BackupFiles() =>
         Directory.Exists(_backupDir)
@@ -166,6 +209,7 @@ public sealed class JsonFileStore<T> where T : class
         {
             if (TryRead(backup, out var value) == null)
             {
+                if (_versionOf != null && value != null && _versionOf(value) < _currentVersion) { _upgrade!(value); }   // an old backup is upgraded in memory
                 try { File.Copy(backup, _path, overwrite: true); }
                 catch (Exception ex) { _log.Warn($"{Stem}: restored data in memory but could not rewrite main file.", ex); }
                 return value;

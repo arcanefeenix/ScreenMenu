@@ -31,6 +31,7 @@ public partial class App : Application
     private DisplaysViewModel? _displays;
     private OutputController? _controller;
     private StopHotKey? _hotKey;
+    private MediaStore? _media;
     private readonly ErrorDialogThrottle _errorDialogs = new();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -72,13 +73,15 @@ public partial class App : Application
             notices.Add(load.Message);
 
         _screensStore = new JsonFileStore<ScreenLayout>(
-            paths.ScreensFile, paths.Backups, () => new ScreenLayout(), ScreenLayout.ValidateFile, _log);
+            paths.ScreensFile, paths.Backups, () => new ScreenLayout(), ScreenLayout.ValidateFile, _log,
+            versionOf: l => l.SchemaVersion, currentVersion: ScreenLayout.CurrentSchemaVersion, upgrade: ScreenLayout.Upgrade);
         var screensLoad = _screensStore.Load();
         _screenLayout = screensLoad.Value;
         _log.Info($"Screen layout loaded: {screensLoad.Status}, {_screenLayout.Screens.Count} screen(s)");
         if (screensLoad.Status is LoadStatus.RecoveredFromBackup or LoadStatus.DefaultedAfterFailure && screensLoad.Message != null)
             notices.Add("Screens: " + screensLoad.Message);
         var assets = new AssetStore(paths.Assets, _log);
+        _media = new MediaStore(paths.Media, new MediaPlayerVideoProbe(Dispatcher), _log);
         _menuLibrary = new MenuLibrary(new FileMenuStore(paths, _log), _log);
         _menuLibrary.Load();
         foreach (var issue in _menuLibrary.LoadIssues) notices.Add("Menus: " + issue.Message);
@@ -144,7 +147,8 @@ public partial class App : Application
             _screenLayout, SaveScreens, _log,
             canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
             confirmRemove: ConfirmRemoveScreen,
-            menus: menus);
+            menus: menus,
+            mediaExists: _media.Exists);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
         var output = new OutputViewModel(_controller, _displays, screens, menus, render, _hotKey, _log, ConfirmStart);
         menus.LivePageOf = output.LivePageOf;

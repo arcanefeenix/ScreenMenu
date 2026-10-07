@@ -123,10 +123,14 @@ public sealed class ScreensViewModel : ObservableObject
     private string _lastIssueSignature = "";
     private string? _saveError;
 
+    private readonly Func<string, bool>? _mediaExists;
+
     public ScreensViewModel(ScreenLayout layout, Action save, IAppLog log,
-        Func<CanvasInfo> canvasProvider, Func<string, bool> confirmRemove, MenusViewModel menus)
+        Func<CanvasInfo> canvasProvider, Func<string, bool> confirmRemove, MenusViewModel menus,
+        Func<string, bool>? mediaExists = null)
     {
         _menus = menus;
+        _mediaExists = mediaExists;
         _layout = layout;
         _save = save;
         _log = log;
@@ -286,7 +290,7 @@ public sealed class ScreensViewModel : ObservableObject
 
     private void Revalidate()
     {
-        var issues = ScreenValidator.Validate(_layout.Screens, Canvas.Size, _menus.Ids);
+        var issues = ScreenValidator.Validate(_layout.Screens, Canvas.Size, _menus.Ids, _mediaExists);
         foreach (var item in Items)
             item.Issues = issues.Where(i => i.ScreenId == item.Model.Id).ToList();
 
