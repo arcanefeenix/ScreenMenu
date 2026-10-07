@@ -588,7 +588,7 @@
                             <TextBlock DockPanel.Dock="Left" Width="150" Text="Ctrl+Shift+I" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                             <StackPanel>
                                 <TextBlock Text="Identify Screens" FontWeight="SemiBold"/>
-                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Shows each screen's number and outline on the LED output for 15 seconds, then returns to Normal Output."/>
+                                <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Text="Shows each screen's number and outline on the LED output for 15 seconds, then returns to Normal Output. Works from anywhere while output is running."/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
