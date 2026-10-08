@@ -41,21 +41,16 @@ public sealed class VideoItem
     /// <summary>Length in seconds recorded at import; zero if unknown.</summary>
     public double DurationSeconds { get; set; }
 
-    public bool HasAudio { get; set; }
-
     public VideoItem Clone() => (VideoItem)MemberwiseClone();
 }
 
-/// <summary>An ordered list of videos shown one after another on a screen.</summary>
+/// <summary>An ordered list of videos shown one after another on a screen. There is no sound: video is always played muted and audio tracks are ignored.</summary>
 public sealed class VideoPlaylist
 {
     public List<VideoItem> Items { get; set; } = new();
 
     /// <summary>Start again from the first video after the last one ends.</summary>
     public bool Loop { get; set; } = true;
-
-    /// <summary>Muted unless the operator turns sound on.</summary>
-    public bool Muted { get; set; } = true;
 
     public VideoFit Fit { get; set; } = VideoFit.Fit;
 
@@ -67,7 +62,6 @@ public sealed class VideoPlaylist
     {
         Items = Items.Select(i => i.Clone()).ToList(),
         Loop = Loop,
-        Muted = Muted,
         Fit = Fit,
     };
 }

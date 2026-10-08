@@ -119,8 +119,6 @@ public sealed class VideoScreenPlayer : IDisposable
     /// <summary>How many times the playing video changed (next video, loop, skip).</summary>
     public int ItemChanges { get; private set; }
 
-    public bool Muted => _playlist.Muted;
-
     public event Action? FrameUpdated;
     public event Action? StateChanged;
 
@@ -130,8 +128,6 @@ public sealed class VideoScreenPlayer : IDisposable
     public void SetPlaylist(VideoPlaylist playlist) => Safely(() =>
     {
         _playlist = playlist;
-        ApplyMute(_active);
-        ApplyMute(_standby);
         var changed = _sequencer.SetItems(playlist.Items, playlist.Loop);
         if (!_started) return;
         if (changed) BeginItem(_sequencer.Current);
@@ -214,7 +210,6 @@ public sealed class VideoScreenPlayer : IDisposable
         _lastPosition = TimeSpan.MinValue;
         _stalledTicks = 0;
         _stateClock.Restart();
-        ApplyMute(_active);
 
         if (_active.Failed) { FailCurrent(_active.FailReason ?? "it could not be opened"); return; }
 
@@ -271,8 +266,8 @@ public sealed class VideoScreenPlayer : IDisposable
         var path = _resolve(item.FileName);
         if (path == null) return null;
 
-        var slot = new Slot { Player = new MediaPlayer { ScrubbingEnabled = true }, Item = item };   // scrubbing lets a paused spare decoder show its first picture
-        ApplyMute(slot);
+        // There is no audio in this project: every decoder is permanently muted and a video's sound track is simply never played.
+        var slot = new Slot { Player = new MediaPlayer { ScrubbingEnabled = true, IsMuted = true, Volume = 0 }, Item = item };   // scrubbing lets a paused spare decoder show its first picture
         slot.Player.MediaOpened += (_, _) => Safely(() => OnOpened(slot));
         slot.Player.MediaFailed += (_, e) => Safely(() => OnFailed(slot, e.ErrorException?.Message));
         slot.Player.MediaEnded += (_, _) => Safely(() => OnEnded(slot));
@@ -411,12 +406,6 @@ public sealed class VideoScreenPlayer : IDisposable
     }
 
     // ---- helpers ----
-
-    private void ApplyMute(Slot? slot)
-    {
-        if (slot == null) return;
-        try { slot.Player.IsMuted = _playlist.Muted; slot.Player.Volume = _playlist.Muted ? 0 : 1; } catch { }
-    }
 
     private void SetState(VideoPlayerState state)
     {

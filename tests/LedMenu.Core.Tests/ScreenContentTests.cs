@@ -17,14 +17,13 @@ public class ScreenContentTests
         new() { FileName = file, DisplayName = file, Width = w, Height = h, DurationSeconds = 10, Enabled = enabled };
 
     [Fact]
-    public void A_new_screen_shows_a_menu_with_an_empty_muted_looping_playlist()
+    public void A_new_screen_shows_a_menu_with_an_empty_looping_playlist()
     {
         var s = new Screen();
         Assert.Equal(ScreenContentKind.Menu, s.ContentKind);
         Assert.False(s.ShowsVideo);
         Assert.Empty(s.Playlist.Items);
         Assert.True(s.Playlist.Loop);
-        Assert.True(s.Playlist.Muted);
         Assert.Equal(VideoFit.Fit, s.Playlist.Fit);
     }
 

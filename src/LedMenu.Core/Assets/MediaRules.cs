@@ -5,9 +5,9 @@ namespace LedMenu.Core.Assets;
 public enum VideoContainer { Mp4, Asf, Avi, Matroska }
 
 /// <summary>What opening a video with the Windows decoder revealed.</summary>
-public sealed record VideoProbeResult(bool Ok, int Width, int Height, double DurationSeconds, bool HasAudio, string? Problem)
+public sealed record VideoProbeResult(bool Ok, int Width, int Height, double DurationSeconds, string? Problem)
 {
-    public static VideoProbeResult Failure(string problem) => new(false, 0, 0, 0, false, problem);
+    public static VideoProbeResult Failure(string problem) => new(false, 0, 0, 0, problem);
 }
 
 /// <summary>Opens a video file to learn its size and length, or to find out that it cannot be played. Implemented on top of Windows' own decoder.</summary>

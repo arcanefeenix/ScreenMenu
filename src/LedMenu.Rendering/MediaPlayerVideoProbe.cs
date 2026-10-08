@@ -7,7 +7,7 @@ namespace LedMenu.Rendering;
 
 /// <summary>
 /// Finds out whether Windows can play a video by opening it with the same decoder that will play it (WPF MediaPlayer,
-/// Media Foundation), and reads its picture size, length and whether it has sound. The player is created and driven on the
+/// Media Foundation), and reads its picture size and length (sound is ignored: the project has no audio). The player is created and driven on the
 /// dispatcher it is given (the UI thread), whichever thread calls <see cref="ProbeAsync"/>. It never hangs: a file that
 /// neither opens nor fails within the timeout is reported as failed.
 /// </summary>
@@ -48,7 +48,7 @@ public sealed class MediaPlayerVideoProbe : IVideoProbe
             int w = player.NaturalVideoWidth, h = player.NaturalVideoHeight;
             var seconds = player.NaturalDuration.HasTimeSpan ? player.NaturalDuration.TimeSpan.TotalSeconds : 0;
             Finish(player.HasVideo && w > 0 && h > 0
-                ? new VideoProbeResult(true, w, h, seconds, player.HasAudio, null)
+                ? new VideoProbeResult(true, w, h, seconds, null)
                 : VideoProbeResult.Failure("it has no picture Windows can show (an audio-only file, or a video format Windows lacks)"));
         };
         player.MediaFailed += (_, e) =>

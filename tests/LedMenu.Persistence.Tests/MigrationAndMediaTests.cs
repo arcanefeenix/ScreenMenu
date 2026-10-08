@@ -120,7 +120,7 @@ public class MediaStoreTests : IDisposable
 
     private sealed class FakeProbe : IVideoProbe
     {
-        public VideoProbeResult Result { get; set; } = new(true, 168, 672, 12.5, false, null);
+        public VideoProbeResult Result { get; set; } = new(true, 168, 672, 12.5, null);
         public int Calls { get; private set; }
         public string? LastPath { get; private set; }
         public Func<string, Task<VideoProbeResult>>? Custom { get; set; }
@@ -152,7 +152,7 @@ public class MediaStoreTests : IDisposable
     [Fact]
     public async Task A_good_video_is_copied_probed_and_described()
     {
-        var probe = new FakeProbe { Result = new(true, 168, 672, 12.5, true, null) };
+        var probe = new FakeProbe { Result = new(true, 168, 672, 12.5, null) };
         var bytes = Mp4Bytes();
         var result = await Store(probe).ImportAsync(Source("My Promo.mp4", bytes));
 
@@ -161,7 +161,6 @@ public class MediaStoreTests : IDisposable
         Assert.Equal("My Promo.mp4", item.DisplayName);
         Assert.Equal((168, 672), (item.Width, item.Height));
         Assert.Equal(12.5, item.DurationSeconds);
-        Assert.True(item.HasAudio);
         Assert.True(item.Enabled);
         Assert.True(MediaRules.IsSafeFileName(item.FileName));
         Assert.EndsWith(".mp4", item.FileName);
@@ -229,7 +228,7 @@ public class MediaStoreTests : IDisposable
     [Fact]
     public async Task A_probe_that_returns_a_zero_sized_picture_counts_as_failure()
     {
-        var probe = new FakeProbe { Result = new(true, 0, 0, 5, false, null) };
+        var probe = new FakeProbe { Result = new(true, 0, 0, 5, null) };
         await Assert.ThrowsAsync<MediaImportException>(() => Store(probe).ImportAsync(Source("x.mp4", Mp4Bytes())));
         Assert.Empty(Directory.GetFiles(MediaDir));
     }

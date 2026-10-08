@@ -54,22 +54,21 @@ public class VideoProbeTests : IDisposable
     }
 
     [Fact]
-    public void A_good_clip_reports_its_size_and_length_and_no_sound() => Run(async () =>
+    public void A_good_clip_reports_its_size_and_length() => Run(async () =>
     {
         var r = await new MediaPlayerVideoProbe(Dispatcher.CurrentDispatcher).ProbeAsync(Path.Combine(Media, "tiny-168x672.mp4"));
         Assert.True(r.Ok, r.Problem);
         Assert.Equal((168, 672), (r.Width, r.Height));
         Assert.InRange(r.DurationSeconds, 0.9, 1.2);
-        Assert.False(r.HasAudio);
         return 0;
     });
 
     [Fact]
-    public void A_clip_with_sound_is_reported_as_having_audio() => Run(async () =>
+    public void A_clip_with_a_sound_track_is_accepted_like_any_other_the_sound_is_just_ignored() => Run(async () =>
     {
         var r = await new MediaPlayerVideoProbe(Dispatcher.CurrentDispatcher).ProbeAsync(Path.Combine(Media, "tiny-168x672-audio.mp4"));
         Assert.True(r.Ok, r.Problem);
-        Assert.True(r.HasAudio);
+        Assert.Equal((168, 672), (r.Width, r.Height));
         return 0;
     });
 

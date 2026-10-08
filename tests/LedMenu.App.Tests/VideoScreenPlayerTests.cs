@@ -261,10 +261,8 @@ public class VideoScreenPlayerTests : IDisposable
         Assert.True(ui.Until(() => p.FramesGrabbed > 2));
         var changes = p.ItemChanges;
         pl.Items.Add(Clip("solid-blue.mp4"));
-        pl.Muted = false;
         p.SetPlaylist(pl);
         Assert.Equal(changes, p.ItemChanges);                  // no restart
-        Assert.False(p.Muted);
     });
 
     [Fact]
@@ -299,6 +297,18 @@ public class VideoScreenPlayerTests : IDisposable
         Assert.Equal((40, 40), (p.Frame.Width, p.Frame.Height));
         Assert.Equal(40 * 40 * 4, p.Frame.Data.Length);
         Assert.Equal("red", Colour(p.Frame, 39, 39));
+    });
+
+    [Fact]
+    public void A_clip_with_a_sound_track_plays_silently_and_looks_the_same() => UiPump.Run(ui =>
+    {
+        using var p = Player(ui);
+        p.SetPlaylist(List(true, "tiny-168x672-audio.mp4"));
+        p.Play();
+        Assert.True(ui.Until(() => p.FramesGrabbed > 5), "no pictures arrived");
+        Assert.Equal(VideoPlayerState.Playing, p.State);
+        Assert.Equal((168, 672), (p.Frame.Width, p.Frame.Height));
+        Assert.Null(p.Problem);
     });
 
     [Fact]

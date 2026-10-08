@@ -119,7 +119,7 @@ public sealed class MediaStore
                 " MP4 with H.264 video is the safest format; try re-exporting it that way.");
         }
 
-        _log.Info($"Video imported: {storedName} {probe.Width}x{probe.Height}, {probe.DurationSeconds:0.0} s{(probe.HasAudio ? ", with audio" : "")}" + (alreadyThere ? " (already present)" : ""));
+        _log.Info($"Video imported: {storedName} {probe.Width}x{probe.Height}, {probe.DurationSeconds:0.0} s" + (alreadyThere ? " (already present)" : ""));
         var item = new VideoItem
         {
             FileName = storedName,
@@ -127,7 +127,6 @@ public sealed class MediaStore
             Width = probe.Width,
             Height = probe.Height,
             DurationSeconds = probe.DurationSeconds,
-            HasAudio = probe.HasAudio,
         };
         return new MediaImportResult(item, alreadyThere);
     }
