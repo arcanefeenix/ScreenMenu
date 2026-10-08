@@ -17,12 +17,12 @@ public sealed class ScaledFrameControl : FrameworkElement
     public static readonly DependencyProperty FrameProperty = DependencyProperty.Register(
         nameof(Frame), typeof(PixelBuffer), typeof(ScaledFrameControl),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender,
-            (d, _) => ((ScaledFrameControl)d).Invalidate()));
+            (d, _) => ((ScaledFrameControl)d).Reset()));
 
     public static readonly DependencyProperty RegionProperty = DependencyProperty.Register(
         nameof(Region), typeof(PixelRegion), typeof(ScaledFrameControl),
         new FrameworkPropertyMetadata(default(PixelRegion), FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender,
-            (d, _) => ((ScaledFrameControl)d)._crop = null));
+            (d, _) => ((ScaledFrameControl)d).Reset()));
 
     /// <summary>Picture pixels to screen pixels: 1 is actual pixels; 0 means fit inside the preview box.</summary>
     public static readonly DependencyProperty ScaleProperty = DependencyProperty.Register(
@@ -32,10 +32,12 @@ public sealed class ScaledFrameControl : FrameworkElement
     /// <summary>Changes whenever the pixels of <see cref="Frame"/> changed in place (a playing video); forces a redraw from the new pixels.</summary>
     public static readonly DependencyProperty RevisionProperty = DependencyProperty.Register(
         nameof(Revision), typeof(int), typeof(ScaledFrameControl),
-        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ScaledFrameControl)d).Invalidate()));
+        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ScaledFrameControl)d)._pixelsStale = true));
 
-    private BitmapSource? _bitmap;
-    private BitmapSource? _crop;
+    // One bitmap the size of the region being shown, reused for every repaint: a playing video repaints this ten times a second,
+    // and rebuilding a whole 1080p or 4K picture each time (8 to 33 MB) would be wasteful.
+    private WriteableBitmap? _view;
+    private bool _pixelsStale = true;
 
     public ScaledFrameControl()
     {
@@ -48,7 +50,8 @@ public sealed class ScaledFrameControl : FrameworkElement
     public double Scale { get => (double)GetValue(ScaleProperty); set => SetValue(ScaleProperty, value); }
     public int Revision { get => (int)GetValue(RevisionProperty); set => SetValue(RevisionProperty, value); }
 
-    private void Invalidate() { _bitmap = null; _crop = null; }
+    /// <summary>The picture object or the region changed: build the view again from scratch.</summary>
+    private void Reset() { _view = null; _pixelsStale = true; }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new FrameworkElementAutomationPeer(this);
 
@@ -82,14 +85,21 @@ public sealed class ScaledFrameControl : FrameworkElement
         var r = Effective();
         if (f == null || r.Width <= 0) return;
 
-        _bitmap ??= BitmapSource.Create(f.Width, f.Height, 96, 96, PixelFormats.Bgra32, null, f.Data, f.Width * 4);
-        _crop ??= r.X == 0 && r.Y == 0 && r.Width == f.Width && r.Height == f.Height
-            ? _bitmap
-            : new CroppedBitmap(_bitmap, new Int32Rect(r.X, r.Y, r.Width, r.Height));
+        if (_view == null || _view.PixelWidth != r.Width || _view.PixelHeight != r.Height)
+        {
+            _view = new WriteableBitmap(r.Width, r.Height, 96, 96, PixelFormats.Bgra32, null);
+            _pixelsStale = true;
+        }
+        if (_pixelsStale)
+        {
+            // copy only the rows of the region straight out of the picture (stride = the whole picture's row)
+            _view.WritePixels(new Int32Rect(0, 0, r.Width, r.Height), f.Data, f.Width * 4, (r.Y * f.Width + r.X) * 4);
+            _pixelsStale = false;
+        }
 
         var physical = PhysicalScale(r);
         RenderOptions.SetBitmapScalingMode(this, physical >= 1 ? BitmapScalingMode.NearestNeighbor : BitmapScalingMode.HighQuality);
         var size = MeasureOverride(default);
-        dc.DrawImage(_crop, new Rect(0, 0, size.Width, size.Height));
+        dc.DrawImage(_view, new Rect(0, 0, size.Width, size.Height));
     }
 }
