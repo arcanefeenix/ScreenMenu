@@ -643,7 +643,7 @@
                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <Border Background="Black" BorderBrush="#FF666666" BorderThickness="1" HorizontalAlignment="Left" VerticalAlignment="Top">
                             <controls:ScaledFrameControl AutomationProperties.AutomationId="PreviewImage"
-                                                         Frame="{Binding Frame}" Region="{Binding Region}" Scale="{Binding Scale}"/>
+                                                         Frame="{Binding Frame}" Region="{Binding Region}" Scale="{Binding Scale}" Revision="{Binding Revision}"/>
                         </Border>
                     </ScrollViewer>
                 </DockPanel>

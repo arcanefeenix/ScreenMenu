@@ -32,6 +32,7 @@ public partial class App : Application
     private OutputController? _controller;
     private StopHotKey? _hotKey;
     private MediaStore? _media;
+    private VideoScreenHost? _videoHost;
     private readonly ErrorDialogThrottle _errorDialogs = new();
 
     protected override void OnStartup(StartupEventArgs e)
@@ -150,7 +151,8 @@ public partial class App : Application
             menus: menus,
             mediaExists: _media.Exists);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
-        var output = new OutputViewModel(_controller, _displays, screens, menus, render, _hotKey, _log, ConfirmStart);
+        _videoHost = new VideoScreenHost(Dispatcher, _media.Resolve, _log);
+        var output = new OutputViewModel(_controller, _displays, screens, menus, render, _videoHost, _hotKey, _log, ConfirmStart);
         menus.LivePageOf = output.LivePageOf;
         menus.ScreenSizeFor = id => screens.ScreenSizeForMenu(id);
         _saver = new SaveDebouncer(new DispatcherScheduler());
@@ -177,6 +179,18 @@ public partial class App : Application
             _ = Dispatcher.InvokeAsync(async () =>
             {
                 await OutputSelfTest.RunAsync(output, _controller, paths.SettingsFile, hwnd, report, _log);
+                Shutdown();
+            });
+        }
+
+        // Diagnostic mode: LedMenu.App.exe --selftest-video <report file>  (needs a data folder with a menu screen and a video screen)
+        var videoIdx = Array.IndexOf(args, "--selftest-video");
+        if (videoIdx >= 0 && videoIdx + 1 < args.Length)
+        {
+            var report = args[videoIdx + 1];
+            _ = Dispatcher.InvokeAsync(async () =>
+            {
+                await VideoSelfTest.RunAsync(output, _controller, report, _log);
                 Shutdown();
             });
         }
@@ -239,6 +253,7 @@ public partial class App : Application
         _controller?.Dispose();
         _hotKey?.Dispose();
         _displays?.Dispose();
+        try { _videoHost?.Dispose(); } catch (Exception ex) { _log?.Warn("Video players did not close cleanly.", ex); }
         _log?.Info("Application shutdown.");
         if (_singleInstance != null)
         {

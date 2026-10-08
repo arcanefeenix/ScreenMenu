@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Writes a test data folder: one menu screen and one video screen with the given clips. Not part of LedMenu.sln and not shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LedMenu.Core\LedMenu.Core.csproj" />
+    <ProjectReference Include="..\..\src\LedMenu.Persistence\LedMenu.Persistence.csproj" />
+  </ItemGroup>
+</Project>

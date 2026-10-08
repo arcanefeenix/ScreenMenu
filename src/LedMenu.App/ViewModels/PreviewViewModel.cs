@@ -15,6 +15,9 @@ public interface IFrameSource
     bool IsBlackout => false;
     string CanvasDescription { get; }
     event Action? FrameChanged;
+
+    /// <summary>Some pixels of <see cref="CurrentFrame"/> changed in place (a playing video); its size and screens did not. Raised at most about ten times a second.</summary>
+    event Action? PictureChanged;
 }
 
 public sealed record PreviewTarget(string Label, CalibrationScreen? Screen)
@@ -59,6 +62,7 @@ public sealed class PreviewViewModel : ObservableObject
         _target = new PreviewTarget(WholeLabel(), null);
         Targets.Add(_target);
         _source.FrameChanged += OnFrameChanged;
+        _source.PictureChanged += () => { Revision++; OnPropertyChanged(nameof(Revision)); };
         OnFrameChanged();
     }
 
@@ -86,6 +90,9 @@ public sealed class PreviewViewModel : ObservableObject
         get => _scale;
         set { if (value != null && !ReferenceEquals(value, _scale)) { _scale = value; OnPropertyChanged(); RaiseView(); } }
     }
+
+    /// <summary>Counts in-place picture changes so the view knows to redraw even though <see cref="Frame"/> is the same object.</summary>
+    public int Revision { get; private set; }
 
     /// <summary>The picture exactly as it is (or will be) on the LED output.</summary>
     public PixelBuffer Frame => _source.CurrentFrame;

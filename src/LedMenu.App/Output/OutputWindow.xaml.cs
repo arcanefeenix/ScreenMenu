@@ -127,25 +127,41 @@ public partial class OutputWindow : Window
     public void ShowFrame(PixelBuffer? frame)
     {
         _frame = frame;
-        Surface.Children.Clear();
-        if (frame == null) return;
-
+        EnsureSurface();
         var dpi = VisualTreeHelper.GetDpi(this);
-        var bmp = BitmapSource.Create(frame.Width, frame.Height, dpi.PixelsPerInchX, dpi.PixelsPerInchY,
-            PixelFormats.Bgra32, null, frame.Data, frame.Width * 4);
-        bmp.Freeze();
+        _surface.Show(frame, dpi.PixelsPerInchX, dpi.PixelsPerInchY);
+    }
 
-        var image = new Image
-        {
-            Source = bmp,
-            Stretch = Stretch.None,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
-            SnapsToDevicePixels = true,
-            UseLayoutRounding = true,
-        };
-        RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
-        Surface.Children.Add(image);
+    /// <summary>Refreshes just one rectangle of the picture that is showing (a playing video), leaving the rest as it is.</summary>
+    public void UpdateRegion(PixelBuffer frame, PixelRegion region)
+    {
+        _frame = frame;
+        EnsureSurface();
+        _surface.Update(frame, region);
+    }
+
+    private readonly FrameSurface _surface = new();
+
+    /// <summary>
+    /// Reads back what the window's surface actually holds (as WPF would draw it), at the monitor's real pixel size.
+    /// For diagnostics only: this is how the program checks its own output without photographing the screen.
+    /// </summary>
+    public PixelBuffer? CaptureSurface()
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var w = (int)Math.Round(Surface.ActualWidth * dpi.DpiScaleX);
+        var h = (int)Math.Round(Surface.ActualHeight * dpi.DpiScaleY);
+        if (w <= 0 || h <= 0) return null;
+        var rtb = new RenderTargetBitmap(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
+        rtb.Render(Surface);
+        var buffer = new PixelBuffer(w, h);
+        rtb.CopyPixels(buffer.Data, w * 4, 0);
+        return buffer;
+    }
+
+    private void EnsureSurface()
+    {
+        if (!Surface.Children.Contains(_surface)) Surface.Children.Add(_surface);
     }
 
     /// <summary>Self-test pattern covering the whole client area.</summary>

@@ -60,6 +60,9 @@ public sealed class OutputController : IDisposable
     /// <summary>Shows a frame on the running output (null = pure black). Does nothing if output is not running.</summary>
     public void ShowFrame(PixelBuffer? frame) => _window?.ShowFrame(frame);
 
+    /// <summary>Refreshes one rectangle of the running output from the shared picture (used by playing videos).</summary>
+    public void UpdateRegion(PixelBuffer frame, PixelRegion region) => _window?.UpdateRegion(frame, region);
+
     public void Stop(string reason)
     {
         if (_window == null) return;

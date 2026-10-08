@@ -29,6 +29,11 @@ public sealed class ScaledFrameControl : FrameworkElement
         nameof(Scale), typeof(double), typeof(ScaledFrameControl),
         new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender));
 
+    /// <summary>Changes whenever the pixels of <see cref="Frame"/> changed in place (a playing video); forces a redraw from the new pixels.</summary>
+    public static readonly DependencyProperty RevisionProperty = DependencyProperty.Register(
+        nameof(Revision), typeof(int), typeof(ScaledFrameControl),
+        new FrameworkPropertyMetadata(0, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ScaledFrameControl)d).Invalidate()));
+
     private BitmapSource? _bitmap;
     private BitmapSource? _crop;
 
@@ -41,6 +46,7 @@ public sealed class ScaledFrameControl : FrameworkElement
     public PixelBuffer? Frame { get => (PixelBuffer?)GetValue(FrameProperty); set => SetValue(FrameProperty, value); }
     public PixelRegion Region { get => (PixelRegion)GetValue(RegionProperty); set => SetValue(RegionProperty, value); }
     public double Scale { get => (double)GetValue(ScaleProperty); set => SetValue(ScaleProperty, value); }
+    public int Revision { get => (int)GetValue(RevisionProperty); set => SetValue(RevisionProperty, value); }
 
     private void Invalidate() { _bitmap = null; _crop = null; }
 

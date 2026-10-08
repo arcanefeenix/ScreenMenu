@@ -15,7 +15,9 @@ public class PreviewViewModelTests
         public bool IsBlackout { get; set; }
         public string CanvasDescription => "test canvas";
         public event Action? FrameChanged;
+        public event Action? PictureChanged;
         public void Raise() => FrameChanged?.Invoke();
+        public void RaisePicture() => PictureChanged?.Invoke();
     }
 
     private static CalibrationScreen Scr(int n, int x, int y, int w, int h) => new(Guid.NewGuid(), n, "S" + n, x, y, w, h);
@@ -122,5 +124,24 @@ public class PreviewViewModelTests
         src.IsRunning = false;
         src.Raise();
         Assert.Equal("STOPPED", vm.LiveText);
+    }
+
+    [Fact]
+    public void A_picture_that_changed_in_place_bumps_the_revision_without_rebuilding_the_targets()
+    {
+        var src = new FakeSource { DrawnScreens = new[] { Scr(1, 0, 0, 168, 672) } };
+        var vm = new PreviewViewModel(src);
+        src.Raise();
+        var targets = vm.Targets.ToList();
+        var seen = new List<string?>();
+        vm.PropertyChanged += (_, e) => seen.Add(e.PropertyName);
+        var before = vm.Revision;
+
+        src.RaisePicture();
+        src.RaisePicture();
+
+        Assert.Equal(before + 2, vm.Revision);
+        Assert.Contains(nameof(vm.Revision), seen);
+        Assert.Equal(targets, vm.Targets.ToList());           // the screen list and the selection are left alone
     }
 }

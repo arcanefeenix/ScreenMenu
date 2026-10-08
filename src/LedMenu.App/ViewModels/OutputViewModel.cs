@@ -6,6 +6,7 @@ using LedMenu.Core.Display;
 using LedMenu.Core.Layout;
 using LedMenu.Core.Logging;
 using LedMenu.Core.Screens;
+using LedMenu.Core.Video;
 
 namespace LedMenu.App.ViewModels;
 
@@ -26,6 +27,10 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     private readonly ScreensViewModel _screens;
     private readonly MenusViewModel _menus;
     private readonly NormalFrameBuilder _builder;
+    private readonly VideoScreenHost _video;
+    private string? _builderWarnings;
+    private readonly System.Diagnostics.Stopwatch _pictureClock = System.Diagnostics.Stopwatch.StartNew();
+    private long _lastPictureEventMs = -1000;
     private readonly PageClock _pageClock = new();
     private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
     private readonly DispatcherTimer _rotationTimer;
@@ -49,7 +54,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     private readonly BlackoutState _blackout = new();
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
-        MenusViewModel menus, MenuRenderService render,
+        MenusViewModel menus, MenuRenderService render, VideoScreenHost video,
         StopHotKey hotKey, IAppLog log, Func<IReadOnlyList<string>, string, bool> confirm)
     {
         _menus = menus;
@@ -60,6 +65,9 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         _log = log;
         _confirm = confirm;
         _builder = new NormalFrameBuilder(menus.Find, render, _pageClock, () => _clock.Elapsed);
+        _video = video;
+        _video.PictureUpdated += OnVideoPicture;
+        _video.ProblemsChanged += UpdateContentWarnings;
 
         StartCommand = new RelayCommand(Start, () => !_isRunning);
         StopCommand = new RelayCommand(() => Stop("Stop requested by the operator"), () => _isRunning);
@@ -192,6 +200,9 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     /// <summary>Raised whenever <see cref="CurrentFrame"/>, its size or its screens changed.</summary>
     public event Action? FrameChanged;
 
+    /// <summary>Pixels of the current picture changed in place (a playing video). Throttled to about ten a second.</summary>
+    public event Action? PictureChanged;
+
     /// <summary>One line saying what the picture is: live output, a stopped preview, or a stand-in size.</summary>
     public string CanvasDescription
     {
@@ -275,11 +286,15 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
             {
                 var result = _builder.Build(canvas, plan);
                 _shown = result.Shown;
-                var warningText = result.Warnings.Count == 0 ? null : string.Join("\n", result.Warnings);
-                if (warningText != null && warningText != _contentWarnings)
-                    _log.Warn("Output picture problems: " + warningText.Replace("\n", " | "));   // logged when they appear, not every frame
-                ContentWarnings = warningText;
-                Publish(result.Frame, canvas, plan.Drawn);
+                _builderWarnings = result.Warnings.Count == 0 ? null : string.Join("\n", result.Warnings);
+
+                // video screens: players follow the screens, run only while output runs, and their pictures go into the same output picture
+                _video.Sync(_screens.Models, plan.Drawn);
+                _video.SetRunning(_isRunning);
+                var picture = VideoCompositor.Compose(result.Frame, canvas, plan.Drawn, _video.PictureFor);
+
+                UpdateContentWarnings();
+                Publish(picture, canvas, plan.Drawn);
             }
             catch (Exception ex)
             {
@@ -291,7 +306,8 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
             return;
         }
 
-        ContentWarnings = null;
+        _builderWarnings = null;
+        UpdateContentWarnings();
         _shown = new Dictionary<Guid, (Guid, int, int)>();
 
         var dispatcher = System.Windows.Application.Current.Dispatcher;
@@ -316,6 +332,43 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
                 dispatcher.InvokeAsync(() => Message = "The test pattern could not be built: " + ex.Message);
             }
         });
+    }
+
+    /// <summary>The text for the operator: menu problems plus anything a video screen has to report.</summary>
+    private void UpdateContentWarnings()
+    {
+        var lines = new List<string>();
+        if (_builderWarnings != null) lines.Add(_builderWarnings);
+        if (_mode == OutputMode.Normal) lines.AddRange(_video.Problems);
+        var text = lines.Count == 0 ? null : string.Join("\n", lines);
+        if (text != null && text != _contentWarnings)
+            _log.Warn("Output picture problems: " + text.Replace("\n", " | "));      // logged when they appear, not every frame
+        ContentWarnings = text;
+    }
+
+    /// <summary>
+    /// A playing video has a new picture. Only that screen's visible rectangle is copied into the shared output picture and,
+    /// if output is running and not in blackout, only that rectangle is refreshed in the output window.
+    /// </summary>
+    private void OnVideoPicture(Guid screenId)
+    {
+        if (_mode != OutputMode.Normal || LastFrame == null) return;
+        var screen = DrawnScreens.FirstOrDefault(s => s.Id == screenId && s.IsVideo);
+        if (screen == null || _video.PictureFor(screenId) is not { } picture) return;
+
+        var changed = VideoCompositor.Blit(LastFrame, screen, picture, DrawnScreens);
+        if (changed.Count == 0) return;
+
+        if (_isRunning && !_blackout.IsActive)
+            foreach (var region in changed) _controller.UpdateRegion(LastFrame, region);
+
+        // the operator's preview does not need every picture: about ten a second is smooth enough and cheap
+        var now = _pictureClock.ElapsedMilliseconds;
+        if (!_blackout.IsActive && now - _lastPictureEventMs >= 100)
+        {
+            _lastPictureEventMs = now;
+            PictureChanged?.Invoke();
+        }
     }
 
     /// <summary>Makes a built picture current: remember it for the preview and, if running, send it to the LED output.</summary>

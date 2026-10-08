@@ -216,6 +216,9 @@ public sealed class ScreensViewModel : ObservableObject
     }
 
     /// <summary>Which screens a test pattern may be drawn on right now (valid and enabled), and which were skipped.</summary>
+    /// <summary>The screen definitions themselves (the video playlists live on them).</summary>
+    public IReadOnlyList<Screen> Models => _layout.Screens;
+
     public CalibrationPlan BuildCalibrationPlan(CanvasSize canvas) => CalibrationPlan.Build(_layout.Screens, canvas);
 
     /// <summary>Called when the output display or its size may have changed. Screen definitions are left alone.</summary>
