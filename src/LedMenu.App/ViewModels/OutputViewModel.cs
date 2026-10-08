@@ -51,6 +51,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     private CanvasSize _canvas = StandInCanvas;
     private PixelBuffer? _blank;
     private bool _stoppedByDisplayLoss;
+    private bool _previewVideo;
     private readonly BlackoutState _blackout = new();
 
     public OutputViewModel(OutputController controller, DisplaysViewModel displays, ScreensViewModel screens,
@@ -77,6 +78,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
             if (Enum.TryParse<OutputMode>(name, out var m)) SetMode(m);
         });
         BlackoutCommand = new RelayCommand(ToggleBlackout, () => _blackout.CanToggle(_isRunning));
+        ToggleVideoPreviewCommand = new RelayCommand(() => PreviewVideo = !PreviewVideo, () => !_isRunning);
         ToggleIdentifyCommand = new RelayCommand(() =>
             SetMode(_mode == OutputMode.IdentifyScreens ? OutputMode.Normal : OutputMode.IdentifyScreens));
 
@@ -113,6 +115,30 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     public RelayCommand<string> SetModeCommand { get; }
     public RelayCommand ToggleIdentifyCommand { get; }
     public RelayCommand BlackoutCommand { get; }
+    public RelayCommand ToggleVideoPreviewCommand { get; }
+
+    /// <summary>
+    /// Lets the operator watch video screens in the preview while the LED output is stopped (to check a playlist at the desk).
+    /// Nothing goes to any display; it ends when output starts and stops again, or when the operator turns it off.
+    /// </summary>
+    public bool PreviewVideo
+    {
+        get => _previewVideo;
+        set
+        {
+            if (_previewVideo == value) return;
+            _previewVideo = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PreviewVideoText));
+            _video.SetRunning(_isRunning || _previewVideo);
+            _log.Info(value ? "Video preview on (output stopped)." : "Video preview off.");
+        }
+    }
+
+    public string PreviewVideoText => _previewVideo ? "Stop previewing videos" : "Preview videos";
+
+    /// <summary>True when at least one screen that is being drawn shows video, so the preview button is worth showing.</summary>
+    public bool HasVideoScreens => DrawnScreens.Any(s => s.IsVideo);
 
     public bool IsRunning { get => _isRunning; private set { if (Set(ref _isRunning, value)) BlackoutCommand.RaiseCanExecuteChanged(); } }
 
@@ -290,7 +316,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
 
                 // video screens: players follow the screens, run only while output runs, and their pictures go into the same output picture
                 _video.Sync(_screens.Models, plan.Drawn);
-                _video.SetRunning(_isRunning);
+                _video.SetRunning(_isRunning || _previewVideo);
                 var picture = VideoCompositor.Compose(result.Frame, canvas, plan.Drawn, _video.PictureFor);
 
                 UpdateContentWarnings();
@@ -377,6 +403,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         _canvas = canvas;
         LastFrame = frame;
         DrawnScreens = drawn;
+        OnPropertyChanged(nameof(HasVideoScreens));
         if (_isRunning) _controller.ShowFrame(_blackout.Apply(frame));          // null = pure black
         OnPropertyChanged(nameof(CanvasDescription));
         FrameChanged?.Invoke();
@@ -462,6 +489,8 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
     {
         IsRunning = running;
         _displays.SetOutputRunning(running);
+        _previewVideo = false;                   // output starting or stopping ends any desk preview; a stopped output never leaves videos running by itself
+        OnPropertyChanged(nameof(PreviewVideo)); OnPropertyChanged(nameof(PreviewVideoText));
         if (!running)
         {
             if (_blackout.OutputStopped()) _log.Info("Output stopped; blackout cleared.");
@@ -478,6 +507,7 @@ public sealed class OutputViewModel : ObservableObject, IFrameSource
         RaiseModeChanged();
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
+        ToggleVideoPreviewCommand.RaiseCanExecuteChanged();
 
         _pageClock.ResetAll();                      // every menu starts at page 1 when output starts (and the preview restarts when it stops)
         RenderFrame();

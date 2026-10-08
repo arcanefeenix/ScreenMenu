@@ -88,6 +88,10 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
+                            <Button Margin="24,0,0,0" Padding="14,8" Content="{Binding PreviewVideoText}" Command="{Binding ToggleVideoPreviewCommand}"
+                                    Visibility="{Binding HasVideoScreens, Converter={StaticResource BoolToVis}}"
+                                    ToolTip="Plays the videos in the preview panel while the LED output is stopped, to check a playlist at the desk. Nothing goes to any display."
+                                    AutomationProperties.AutomationId="PreviewVideos"/>
                         </StackPanel>
                         <TextBlock Style="{StaticResource Dim}" HorizontalAlignment="Right" VerticalAlignment="Center"
                                    Text="Stop output at any time: Ctrl+Shift+F12     Blackout: Ctrl+Shift+B     All shortcuts: Help tab"/>
@@ -369,6 +373,9 @@
                     <StackPanel DataContext="{Binding Screens}">
                         <DockPanel Margin="0,0,0,8">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource ActionButton}" Content="Remove unused video files" Command="{Binding CleanUpVideoFilesCommand}"
+                                        Visibility="{Binding CanManageVideo, Converter={StaticResource BoolToVis}}"
+                                        ToolTip="Deletes imported video files that no playlist uses. Videos in a playlist are never touched."/>
                                 <Button Style="{StaticResource ActionButton}" Content="Add Screen (168×672)" Command="{Binding AddNarrowCommand}"/>
                                 <Button Style="{StaticResource ActionButton}" Margin="0" Content="Add Screen (336×672)" Command="{Binding AddCommand}"/>
                             </StackPanel>
@@ -384,6 +391,13 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0" Command="{Binding DismissSaveErrorCommand}"/>
                                 <TextBlock Foreground="#FFEDEDED" Text="{Binding SaveError}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            </DockPanel>
+                        </Border>
+                        <Border Background="#FF2B4A2B" Padding="12,6" Margin="0,0,0,8"
+                                Visibility="{Binding HasVideoMessage, Converter={StaticResource BoolToVis}}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0" Command="{Binding DismissVideoMessageCommand}"/>
+                                <TextBlock Foreground="#FFEDEDED" Text="{Binding VideoMessage}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                             </DockPanel>
                         </Border>
                         <Border Background="#FF5A4A00" Padding="12,6" Margin="0,0,0,8"
@@ -430,9 +444,78 @@
                                                     <TextBox Width="76" Padding="3" Text="{Binding Width, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
                                                     <TextBlock Foreground="#FFEDEDED" Text="Height" VerticalAlignment="Center" Margin="14,0,4,0"/>
                                                     <TextBox Width="76" Padding="3" Text="{Binding Height, UpdateSourceTrigger=LostFocus}" KeyDown="CommitOnEnter" LostFocus="NumericBox_LostFocus"/>
-                                                    <TextBlock Foreground="#FFEDEDED" Text="Menu" VerticalAlignment="Center" Margin="18,0,4,0"/>
-                                                    <ComboBox Width="200" VerticalAlignment="Center" ItemsSource="{Binding MenuChoices}"
-                                                              DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignedMenuKey}"/>
+                                                </StackPanel>
+
+                                                <!-- what this screen shows -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <TextBlock Foreground="#FFEDEDED" Text="Shows" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Menu" Padding="16,4" Margin="0,0,6,0"
+                                                                 IsChecked="{Binding IsMenuContent}" AutomationProperties.AutomationId="ShowsMenu"/>
+                                                    <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Video" Padding="16,4" Margin="0,0,14,0"
+                                                                 IsChecked="{Binding IsVideoContent}" AutomationProperties.AutomationId="ShowsVideo"/>
+                                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ShowsMenuPicker, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Foreground="#FFEDEDED" Text="Menu" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                        <ComboBox Width="220" VerticalAlignment="Center" ItemsSource="{Binding MenuChoices}"
+                                                                  DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding AssignedMenuKey}"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+
+                                                <!-- the video playlist (only for a screen that shows video) -->
+                                                <StackPanel Margin="0,10,0,0" Visibility="{Binding ShowsVideoEditor, Converter={StaticResource BoolToVis}}">
+                                                    <StackPanel DataContext="{Binding Playlist}">
+                                                        <DockPanel Margin="0,0,0,6">
+                                                            <Button DockPanel.Dock="Right" Content="Add videos…" Padding="14,4" Command="{Binding ImportCommand}"
+                                                                    AutomationProperties.AutomationId="AddVideos"/>
+                                                            <TextBlock Foreground="#FFEDEDED" Text="VIDEOS, played in this order" FontWeight="Bold" VerticalAlignment="Center"/>
+                                                        </DockPanel>
+                                                        <TextBlock Style="{StaticResource Dim}" Text="{Binding ImportStatus}" Margin="0,0,0,4"/>
+                                                        <TextBlock Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,0,0,4"
+                                                                   Text="No videos yet. Click “Add videos…”. MP4 with H.264 video is the safest format; sound is ignored."
+                                                                   Visibility="{Binding HasNoVideos, Converter={StaticResource BoolToVis}}"/>
+                                                        <ItemsControl ItemsSource="{Binding Items}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Background="#FF1E1E1E" Padding="8,6" Margin="0,0,0,4" BorderBrush="#FF3A3A3A" BorderThickness="1">
+                                                                        <StackPanel>
+                                                                            <DockPanel>
+                                                                                <Button DockPanel.Dock="Right" Content="Remove" Padding="8,2" Margin="6,0,0,0" Command="{Binding RemoveCommand}"/>
+                                                                                <Button DockPanel.Dock="Right" Content="&#9660;" Padding="8,2" Margin="6,0,0,0" Command="{Binding MoveDownCommand}" ToolTip="Move down"/>
+                                                                                <Button DockPanel.Dock="Right" Content="&#9650;" Padding="8,2" Margin="6,0,0,0" Command="{Binding MoveUpCommand}" ToolTip="Move up"/>
+                                                                                <CheckBox IsChecked="{Binding Enabled}" Foreground="#FFEDEDED" VerticalAlignment="Center"
+                                                                                          ToolTip="Untick to skip this video without removing it">
+                                                                                    <TextBlock Foreground="#FFEDEDED" Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                                                </CheckBox>
+                                                                            </DockPanel>
+                                                                            <TextBlock Style="{StaticResource Dim}" Text="{Binding Detail}" Margin="22,2,0,0"/>
+                                                                            <TextBlock Foreground="#FFFFC060" Text="{Binding Warning}" TextWrapping="Wrap" Margin="22,2,0,0"
+                                                                                       Visibility="{Binding HasWarning, Converter={StaticResource BoolToVis}}"/>
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+
+                                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                            <CheckBox Content="Start again after the last video" IsChecked="{Binding Loop}" Foreground="#FFEDEDED" VerticalAlignment="Center" Margin="0,0,18,0"/>
+                                                            <TextBlock Foreground="#FFEDEDED" Text="A video of another shape:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                            <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Fit (whole picture)" Padding="10,3" Margin="0,0,4,0" IsChecked="{Binding IsFit}"/>
+                                                            <RadioButton Style="{StaticResource {x:Type ToggleButton}}" Content="Fill (crop)" Padding="10,3" IsChecked="{Binding IsFill}"/>
+                                                        </StackPanel>
+
+                                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                            <Button Content="&#9198; Previous" Padding="12,4" Margin="0,0,6,0" Command="{Binding PreviousCommand}" AutomationProperties.AutomationId="VideoPrevious"/>
+                                                            <Button Content="{Binding PlayPauseText}" Padding="12,4" Margin="0,0,6,0" Command="{Binding PlayPauseCommand}" AutomationProperties.AutomationId="VideoPlayPause"/>
+                                                            <Button Content="Next &#9197;" Padding="12,4" Margin="0,0,12,0" Command="{Binding NextCommand}" AutomationProperties.AutomationId="VideoNext"/>
+                                                        </StackPanel>
+                                                        <TextBlock Style="{StaticResource Dim}" Text="{Binding LiveStatus}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+
+                                                        <Border Background="#FF5A4A00" Padding="10,6" Margin="0,8,0,0" Visibility="{Binding HasMessage, Converter={StaticResource BoolToVis}}">
+                                                            <DockPanel>
+                                                                <Button DockPanel.Dock="Right" Content="Dismiss" Padding="10,2" Margin="12,0,0,0" Command="{Binding DismissMessageCommand}"/>
+                                                                <TextBlock Foreground="#FFEDEDED" Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                            </DockPanel>
+                                                        </Border>
+                                                    </StackPanel>
                                                 </StackPanel>
                                                 <TextBlock Foreground="#FFEDEDED" Text="{Binding IssueText}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
                                                            Visibility="{Binding HasIssues, Converter={StaticResource BoolToVis}}">

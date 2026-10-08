@@ -216,6 +216,8 @@ public class ScreenContentTests
     [Theory]
     [InlineData(0, "?")]
     [InlineData(9.4, "0:09")]
+    [InlineData(38.5, "0:39")]
+    [InlineData(6.034, "0:06")]
     [InlineData(95, "1:35")]
     [InlineData(3725, "1:02:05")]
     public void Durations_read_naturally(double seconds, string expected) => Assert.Equal(expected, MediaRules.FormatDuration(seconds));

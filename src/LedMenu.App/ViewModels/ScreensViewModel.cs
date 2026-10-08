@@ -16,6 +16,7 @@ public sealed class ScreenItemViewModel : ObservableObject
     {
         Model = model;
         _owner = owner;
+        Playlist = owner.CreatePlaylistEditor(this);
         RemoveCommand = new RelayCommand(() => _owner.Remove(this));
         StandardSizeCommand = new RelayCommand(() =>
         {
@@ -30,6 +31,42 @@ public sealed class ScreenItemViewModel : ObservableObject
     }
 
     public Screen Model { get; }
+
+    /// <summary>The video playlist editor for this screen, or null where video editing is not available.</summary>
+    public PlaylistEditorViewModel? Playlist { get; }
+
+    // ---- what the screen shows: a menu or a video playlist ----
+
+    public bool IsMenuContent
+    {
+        get => !Model.ShowsVideo;
+        set { if (value) SetContent(ScreenContentKind.Menu); }
+    }
+
+    public bool IsVideoContent
+    {
+        get => Model.ShowsVideo;
+        set { if (value) SetContent(ScreenContentKind.Video); }
+    }
+
+    public bool ShowsMenuPicker => !Model.ShowsVideo;
+    public bool ShowsVideoEditor => Model.ShowsVideo && Playlist != null;
+
+    /// <summary>Switching between Menu and Video never loses anything: the menu choice and the playlist are both kept.</summary>
+    private void SetContent(ScreenContentKind kind)
+    {
+        if (Model.ContentKind == kind) return;
+        Model.ContentKind = kind;
+        OnPropertyChanged(nameof(IsMenuContent));
+        OnPropertyChanged(nameof(IsVideoContent));
+        OnPropertyChanged(nameof(ShowsMenuPicker));
+        OnPropertyChanged(nameof(ShowsVideoEditor));
+        Playlist?.Refresh();
+        _owner.ItemEdited(this);
+    }
+
+    internal void PlaylistEdited(string what) => _owner.PlaylistEdited(this, what);
+
     public RelayCommand RemoveCommand { get; }
     public RelayCommand StandardSizeCommand { get; }
     public RelayCommand NarrowSizeCommand { get; }
@@ -124,13 +161,16 @@ public sealed class ScreensViewModel : ObservableObject
     private string? _saveError;
 
     private readonly Func<string, bool>? _mediaExists;
+    private readonly VideoEditingServices? _video;
+    private string? _videoMessage;
 
     public ScreensViewModel(ScreenLayout layout, Action save, IAppLog log,
         Func<CanvasInfo> canvasProvider, Func<string, bool> confirmRemove, MenusViewModel menus,
-        Func<string, bool>? mediaExists = null)
+        Func<string, bool>? mediaExists = null, VideoEditingServices? video = null)
     {
         _menus = menus;
         _mediaExists = mediaExists;
+        _video = video;
         _layout = layout;
         _save = save;
         _log = log;
@@ -138,12 +178,14 @@ public sealed class ScreensViewModel : ObservableObject
         _confirmRemove = confirmRemove;
 
         foreach (var s in _layout.Screens) Items.Add(new ScreenItemViewModel(s, this));
-        _menus.ScreensUsing = id => _layout.Screens.Where(sc => sc.AssignedMenuId == id)
+        _menus.ScreensUsing = id => _layout.Screens.Where(sc => sc.AssignedMenuId == id && !sc.ShowsVideo)
             .Select(sc => string.IsNullOrWhiteSpace(sc.Name) ? "(unnamed screen)" : sc.Name).ToList();
         _menus.MenusChanged += () => { foreach (var i in Items) i.RaiseMenusChanged(); Revalidate(); };
         AddCommand = new RelayCommand(() => Add(ScreenDefaults.Wall2x2Width, ScreenDefaults.Wall2x2Height));
         AddNarrowCommand = new RelayCommand(() => Add(ScreenDefaults.Wall1x2Width, ScreenDefaults.Wall1x2Height));
         DismissSaveErrorCommand = new RelayCommand(() => SaveError = null);
+        CleanUpVideoFilesCommand = new RelayCommand(CleanUpVideoFiles, () => _video != null);
+        DismissVideoMessageCommand = new RelayCommand(() => VideoMessage = null);
         Renumber();
         RefreshCanvas();
         _log.Info($"Screens loaded: {Items.Count}");
@@ -155,6 +197,37 @@ public sealed class ScreensViewModel : ObservableObject
     public RelayCommand AddCommand { get; }
     public RelayCommand AddNarrowCommand { get; }
     public RelayCommand DismissSaveErrorCommand { get; }
+    public RelayCommand CleanUpVideoFilesCommand { get; }
+    public RelayCommand DismissVideoMessageCommand { get; }
+
+    /// <summary>True where videos can be imported at all.</summary>
+    public bool CanManageVideo => _video != null;
+
+    public string? VideoMessage
+    {
+        get => _videoMessage;
+        private set { if (Set(ref _videoMessage, value)) OnPropertyChanged(nameof(HasVideoMessage)); }
+    }
+    public bool HasVideoMessage => !string.IsNullOrEmpty(_videoMessage);
+
+    internal PlaylistEditorViewModel? CreatePlaylistEditor(ScreenItemViewModel item) =>
+        _video == null ? null : new PlaylistEditorViewModel(item, _video);
+
+    /// <summary>Every video file name any screen's playlist uses (whether or not that screen currently shows video).</summary>
+    public IReadOnlySet<string> ReferencedMedia =>
+        _layout.Screens.SelectMany(s => s.Playlist.Items).Select(i => i.FileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Deletes imported video files that no playlist uses any more, after asking. Playlists are never touched.</summary>
+    public void CleanUpVideoFiles()
+    {
+        if (_video == null) return;
+        if (!_video.Confirm("Delete the imported video files that no playlist uses any more?\n\nVideos that are in a playlist are not touched. The original files you imported from are not touched either.",
+                "Remove unused video files")) return;
+        var removed = _video.RemoveUnused(ReferencedMedia);
+        _log.Info($"Unused video files removed: {removed.Count}");
+        VideoMessage = removed.Count == 0 ? "There were no unused video files." : $"Removed {removed.Count} unused video file{(removed.Count == 1 ? "" : "s")}.";
+        foreach (var i in Items) i.Playlist?.Refresh();
+    }
 
     /// <summary>Raised whenever the canvas needs redrawing.</summary>
     public event Action? Changed;
@@ -263,6 +336,13 @@ public sealed class ScreensViewModel : ObservableObject
         CommitChange();
     }
 
+    /// <summary>The playlist of a video screen was edited (video added, moved, removed, switched, fit or loop changed).</summary>
+    internal void PlaylistEdited(ScreenItemViewModel item, string what)
+    {
+        _log.Info($"Playlist edited on \"{item.Name}\": {what}");
+        CommitChange();
+    }
+
     /// <summary>Geometry changed mid-drag: update checks and picture, do not save yet.</summary>
     internal void ItemPreviewed(ScreenItemViewModel item)
     {
@@ -295,7 +375,10 @@ public sealed class ScreensViewModel : ObservableObject
     {
         var issues = ScreenValidator.Validate(_layout.Screens, Canvas.Size, _menus.Ids, _mediaExists);
         foreach (var item in Items)
+        {
             item.Issues = issues.Where(i => i.ScreenId == item.Model.Id).ToList();
+            item.Playlist?.RefreshWarnings();
+        }
 
         var signature = string.Join("|", issues.Select(i => $"{i.ScreenId}:{i.Code}:{i.Severity}"));
         if (signature != _lastIssueSignature)

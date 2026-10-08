@@ -29,5 +29,7 @@ If something goes wrong
   - If a data file is ever damaged the program restores the latest good backup by itself and tells you;
     the damaged file is kept next to it, never deleted.
   - The "samples" folder has a placeholder logo you can use to try things out.
+  - Videos: on the Screens tab, set a screen to Video and use "Add videos..." (MP4 with H.264 is best, sized to the screen).
+    There is no sound. Details are in OPERATOR_GUIDE.html, section 4.
 
 Fonts: this program ships the Lato font (SIL Open Font License; see Fonts\README-FONTS.txt).

@@ -64,6 +64,14 @@ public class VideoProbeTests : IDisposable
     });
 
     [Fact]
+    public void The_length_reader_agrees_with_the_real_files_it_will_meet()
+    {
+        Assert.InRange(LedMenu.Core.Assets.Mp4Info.TryReadDurationSeconds(Path.Combine(Media, "tiny-168x672.mp4")) ?? 0, 0.99, 1.01);
+        Assert.InRange(LedMenu.Core.Assets.Mp4Info.TryReadDurationSeconds(Path.Combine(Media, "solid-red.mp4")) ?? 0, 0.99, 1.01);
+        Assert.Null(LedMenu.Core.Assets.Mp4Info.TryReadDurationSeconds(Copy("cut-short.mp4", firstBytes: 3000)));     // damaged: no length, no crash
+    }
+
+    [Fact]
     public void A_clip_with_a_sound_track_is_accepted_like_any_other_the_sound_is_just_ignored() => Run(async () =>
     {
         var r = await new MediaPlayerVideoProbe(Dispatcher.CurrentDispatcher).ProbeAsync(Path.Combine(Media, "tiny-168x672-audio.mp4"));

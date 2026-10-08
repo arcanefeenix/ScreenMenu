@@ -61,7 +61,7 @@ public static class MediaRules
     public static string FormatDuration(double seconds)
     {
         if (seconds <= 0) return "?";
-        var t = TimeSpan.FromSeconds(Math.Round(seconds));
+        var t = TimeSpan.FromSeconds(Math.Round(seconds, MidpointRounding.AwayFromZero));
         return t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{t.Minutes}:{t.Seconds:00}";
     }
 }

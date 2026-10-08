@@ -122,6 +122,9 @@ public sealed class VideoScreenPlayer : IDisposable
     public event Action? FrameUpdated;
     public event Action? StateChanged;
 
+    /// <summary>A different video has become the current one (next, loop, skip, operator's Next/Previous).</summary>
+    public event Action? ItemChanged;
+
     // ---- control ----
 
     /// <summary>Gives the player a playlist (or an edited one). Changes apply live: the video playing is only interrupted if it was removed or switched off.</summary>
@@ -195,6 +198,7 @@ public sealed class VideoScreenPlayer : IDisposable
         }
 
         ItemChanges++;
+        ItemChanged?.Invoke();
         Slot? next = null;
         if (_standby != null && _standby.Item.Id == item.Id && !_standby.Closed)
         {

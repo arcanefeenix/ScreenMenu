@@ -144,14 +144,24 @@ public partial class App : Application
         _log.Info($"Fonts folder: {fonts.Directory}; families: {string.Join(", ", fonts.Families)}");
         var render = new MenuRenderService(fonts, assets, _log);
         var menus = new MenusViewModel(_menuLibrary, assets, _log, PickImage, ConfirmDeleteMenu, render);
+        _videoHost = new VideoScreenHost(Dispatcher, _media.Resolve, _log);
+        var videoServices = new VideoEditingServices
+        {
+            PickFiles = PickVideos,
+            Import = (path, ct) => _media.ImportAsync(path, ct),
+            MediaExists = _media.Exists,
+            Confirm = (text, title) => MessageBox.Show(text, title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes,
+            RemoveUnused = names => _media.RemoveUnused(names),
+            Transport = _videoHost,
+        };
         var screens = new ScreensViewModel(
             _screenLayout, SaveScreens, _log,
             canvasProvider: () => OutputCanvasResolver.Resolve(_displays.OutputMatch, _settings.OutputDisplay),
             confirmRemove: ConfirmRemoveScreen,
             menus: menus,
-            mediaExists: _media.Exists);
+            mediaExists: _media.Exists,
+            video: videoServices);
         _displays.Refreshed += screens.RefreshCanvas;   // output size may change; screens are flagged, never edited
-        _videoHost = new VideoScreenHost(Dispatcher, _media.Resolve, _log);
         var output = new OutputViewModel(_controller, _displays, screens, menus, render, _videoHost, _hotKey, _log, ConfirmStart);
         menus.LivePageOf = output.LivePageOf;
         menus.ScreenSizeFor = id => screens.ScreenSizeForMenu(id);
@@ -194,6 +204,18 @@ public partial class App : Application
                 Shutdown();
             });
         }
+    }
+
+    private IReadOnlyList<string> PickVideos()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Choose videos to add",
+            Filter = "Video files (*.mp4;*.m4v;*.mov;*.wmv;*.avi;*.mkv)|*.mp4;*.m4v;*.mov;*.wmv;*.avi;*.mkv|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = true,
+        };
+        return dialog.ShowDialog() == true ? dialog.FileNames : Array.Empty<string>();
     }
 
     private string? PickImage()

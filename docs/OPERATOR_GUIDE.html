@@ -41,11 +41,12 @@
   exactly like a second monitor. You choose what is on the wall in this program's window on your normal screen;
   changes appear on the wall straight away. There is no &ldquo;publish&rdquo; step.
 </p>
-<p>Three words to know:</p>
+<p>Four words to know:</p>
 <ul>
   <li><b>Display</b> &ndash; a monitor or the LED controller, as Windows sees it. One of them is the <b>LED output</b>.</li>
   <li><b>Screen</b> &ndash; a rectangle inside the LED picture, usually one section of the wall. A common one is <b>336&times;672</b> (the left two panels) or <b>168&times;672</b> (one panel column). You can have several screens, each with its own menu.</li>
   <li><b>Menu</b> &ndash; the content: a header, optional logo, categories and items with prices. A menu is shown by assigning it to a screen.</li>
+  <li><b>Playlist</b> &ndash; instead of a menu, a screen can show <b>videos</b>, one after another. See section 4.</li>
 </ul>
 
 <h2>2. First-time setup (once per wall)</h2>
@@ -73,7 +74,33 @@
 <p><b>Everything saves by itself</b>: buttons save at once, typing saves half a second after you stop. Closing the program saves anything still waiting. If a save fails (disk full, file locked) a red notice says so, the change stays on screen, and the program keeps retrying.</p>
 <p>If a menu is longer than the screen, it is split into <b>pages</b> that rotate on the wall (the Menu Library sets how many seconds each page stays). Items are never cut in half and a heading is never left alone at the bottom of a page. A notice at the top of the Menu tab tells you if a single item is too big to fit.</p>
 
-<h2>4. Running the wall</h2>
+<h2>4. Showing videos on a screen</h2>
+<p>Any screen can show either a <b>Menu</b> or <b>Videos</b>. You can have a menu on one screen and a video on the one next to it at the same time; they do not affect each other. There is <b>no sound</b>: videos are always muted and any sound track is ignored.</p>
+<h3>Setting it up</h3>
+<ol>
+  <li>Open the <b>Screens</b> tab. On the screen's card, next to <b>Shows</b>, click <b>Video</b>. (Click <b>Menu</b> to go back; nothing is lost either way, the menu you had and the videos you added are both remembered.)</li>
+  <li>Click <b>Add videos&hellip;</b> and choose one or more files. Each is copied into the program's own media folder, so you can move or delete the originals afterwards. A file Windows cannot play is refused with the reason, and the others are still added.</li>
+  <li>Put them in order with the <b>&#9650; &#9660;</b> buttons. Untick a video to skip it without removing it. <b>Remove</b> takes a video off the list (the file stays in the media folder).</li>
+  <li><b>Start again after the last video</b> makes the list repeat. If it is off, the screen goes black after the last video.</li>
+  <li><b>A video of another shape</b> only matters when a video is not exactly the screen's size. <b>Fit</b> shows the whole picture with black bars; <b>Fill</b> covers the screen and crops the edges. A video <b>exactly</b> the screen's size (for example 168&times;672 on a 168&times;672 screen) is always shown 1:1, with no scaling, whichever you choose.</li>
+</ol>
+<div class="card">
+  <b>Best results:</b> make each video exactly the size of its screen (such as 168&times;672), as an <b>MP4 with H.264 video</b> (the normal export from most video editors, tagged Rec.709). Other formats may work; the program tests each file when you add it and tells you if it cannot play it. A video of the wrong shape shows an amber note on its row.
+</div>
+<h3>Watching and controlling them</h3>
+<ul>
+  <li>Videos play <b>while the LED output is running</b>. To check a playlist at your desk first, click <b>Preview videos</b> in the output panel (it appears once a screen shows video): the videos play in the preview panel only, and nothing goes to any display. It stops by itself when you start or stop output.</li>
+  <li>Under each playlist, <b>Previous</b>, <b>Pause / Resume</b> and <b>Next</b> control the video playing on that screen, and a line tells you what is playing (&ldquo;Playing 2 of 3: &hellip;&rdquo;).</li>
+  <li>Changes you make to the list while it plays (adding, reordering, switching off) apply at once and <b>do not interrupt</b> the video that is playing, unless you remove or switch off that very video.</li>
+  <li>The next video is opened in the background while the current one plays, so changing videos or repeating the list does not leave a gap or a black flash.</li>
+  <li><b>Blackout</b> and the test patterns work as usual: the videos keep running underneath, and are back as soon as you end blackout or choose Normal Output again.</li>
+</ul>
+<h3>If a video has a problem</h3>
+<p>A video whose file is missing, that will not open, that fails while playing, or that stops moving for 5 seconds is <b>skipped</b>, a note names it in the output panel, and the rest of the playlist carries on. It is not tried again until you start output again. If nothing on a screen can be played, that screen is black and says why; <b>other screens are never affected</b>.</p>
+<h3>Tidying the media folder</h3>
+<p>Imported videos stay in the media folder even after you remove them from a playlist. <b>Remove unused video files</b> (top of the Screens tab) deletes the ones no playlist uses, after asking. Videos that are in any playlist, even on a screen currently showing a menu, are never touched.</p>
+
+<h2>5. Running the wall</h2>
 <h3>Start and stop</h3>
 <p><b>Start Output</b> opens the LED picture on the LED display and covers it completely. The badge at the top right shows <b>OUTPUT: LIVE</b>. <b>Stop Output</b> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F12</kbd>) closes it again; your menus and settings are not affected. The program always starts <i>stopped</i> and never starts in blackout. If the operator window is on the same display as the LED output, you are warned before output starts.</p>
 <h3>The preview</h3>
@@ -90,7 +117,7 @@
 </table>
 <p>A purple banner reminds you whenever a test pattern is on the wall. Stopping output always returns to Normal Output.</p>
 
-<h2>5. Keyboard shortcuts</h2>
+<h2>6. Keyboard shortcuts</h2>
 <table>
   <tr><th>Keys</th><th>Action</th></tr>
   <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd></td><td>Blackout on / off</td></tr>
@@ -100,31 +127,34 @@
 </table>
 <p>The three <kbd>Ctrl</kbd>+<kbd>Shift</kbd> shortcuts work from any program while output is running. None of them can delete anything.</p>
 
-<h2>6. When something goes wrong</h2>
+<h2>7. When something goes wrong</h2>
 <table>
   <tr><th>What you see</th><th>What it means and what to do</th></tr>
   <tr><td>Badge says <b>NO DISPLAY</b> or <b>CONFIRM DISPLAY</b></td><td>The LED display is not connected, or Windows changed its ID. Reconnect it, or on the Displays tab confirm it. The program <b>never</b> uses a different display on its own.</td></tr>
   <tr><td>Output stopped by itself and a message says the display is no longer available</td><td>The LED display was unplugged or switched off. Output stops rather than jumping to another monitor. When the <i>same</i> display comes back, output restarts by itself and says so. If you pressed Stop yourself it will not restart on its own.</td></tr>
   <tr><td>A screen on the wall is black</td><td>It is disabled, has no menu, its menu was deleted, it hangs outside the picture, or its menu failed to draw (a warning names it). Other screens are not affected.</td></tr>
+  <tr><td>A video screen is black, or a note says a video was skipped</td><td>Its playlist is empty, every video is switched off, or the video's file is missing or cannot be played. The note names the screen and the video. Fix the playlist on the Screens tab (the status line under it says what is playing). Other screens are not affected.</td></tr>
+  <tr><td>Amber note on a video row: &ldquo;Shape differs from the screen&rdquo;</td><td>The video is not the screen's exact size, so it is being scaled (Fit) or cropped (Fill) instead of shown 1:1. Re-export it at the screen's size for the sharpest picture.</td></tr>
   <tr><td>Amber notice about a logo or font</td><td>The logo file is missing or unreadable, or a font fell back to a system font. The menu is still shown without the logo. Re-select the logo in the Menu Library.</td></tr>
   <tr><td>Red notice: &ldquo;The menu could not be saved&rdquo;</td><td>Disk full or file locked. Your change is still on screen and the program retries every few seconds and when you close it. Free up space or close whatever has the file open.</td></tr>
   <tr><td>Banner at start saying data was recovered</td><td>A data file was damaged (for example by a power cut). The latest good backup was restored automatically; the damaged file was kept beside it. Check your menus.</td></tr>
   <tr><td>A &ldquo;Something went wrong&rdquo; dialog</td><td>The program caught an unexpected error and is still running. Details are in the log. The same error will not pop up again for two minutes.</td></tr>
 </table>
 
-<h2>7. Your files, backups and moving to another PC</h2>
+<h2>8. Your files, backups and moving to another PC</h2>
 <ul>
-  <li>Everything you create lives in <code>%APPDATA%\LedMenu</code> (paste that into the Explorer address bar): <code>menus</code> (one file per menu), <code>settings.json</code>, <code>screens.json</code>, <code>assets</code> (logos), <code>backups</code>, <code>trash</code> (deleted menus, recoverable) and <code>logs</code>.</li>
+  <li>Everything you create lives in <code>%APPDATA%\LedMenu</code> (paste that into the Explorer address bar): <code>menus</code> (one file per menu), <code>settings.json</code>, <code>screens.json</code>, <code>assets</code> (logos), <code>media</code> (imported videos), <code>backups</code>, <code>trash</code> (deleted menus, recoverable) and <code>logs</code>.</li>
   <li><b>To back up or move to another PC:</b> close the program and copy the whole <code>LedMenu</code> folder. On the new PC put it in the same place, or set the Windows environment variable <code>LEDMENU_DATA_DIR</code> to the folder you want to use.</li>
   <li><b>To update the program:</b> replace the program folder with the new one. Your menus are not in it.</li>
   <li>The program keeps the ten most recent backups of each data file, writes files safely (never half-written), and never deletes a damaged file.</li>
   <li>The log (<code>logs</code> folder, one file per day, kept 14 days) is what to send when asking for help.</li>
 </ul>
 
-<h2>8. About the wall (technical notes)</h2>
+<h2>9. About the wall (technical notes)</h2>
 <ul>
   <li>Tested with a Mirackle VP2: with a 1920&times;1080 Windows signal and scaling off, the wall shows the upper-left of the picture at 1:1. Each panel is 168&times;336 pixels. A 336&times;672 screen at X=0, Y=0 fills the leftmost 2&times;2 panels exactly; a 168&times;672 screen at X=0 fills the leftmost 1&times;2 column.</li>
   <li>Each menu is drawn at the screen's own pixel size, never stretched from a bigger picture, so text stays crisp. The built-in layout is designed for 336&times;672 and also fits 168&times;672.</li>
+  <li>Video is played with the decoder built into Windows, muted, at most about 30 pictures a second. Only the video's own screen area is redrawn, so a 168&times;672 video is cheap even on a large picture.</li>
   <li>The font is Lato (bundled, SIL Open Font License).</li>
 </ul>
 

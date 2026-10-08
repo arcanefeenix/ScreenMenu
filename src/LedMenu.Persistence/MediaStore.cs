@@ -119,14 +119,16 @@ public sealed class MediaStore
                 " MP4 with H.264 video is the safest format; try re-exporting it that way.");
         }
 
-        _log.Info($"Video imported: {storedName} {probe.Width}x{probe.Height}, {probe.DurationSeconds:0.0} s" + (alreadyThere ? " (already present)" : ""));
+        // Windows reports whole seconds (12.93 s shows as 12.0 s); the file's own header knows the real length
+        var seconds = Mp4Info.TryReadDurationSeconds(storedPath) ?? probe.DurationSeconds;
+        _log.Info($"Video imported: {storedName} {probe.Width}x{probe.Height}, {seconds:0.00} s" + (alreadyThere ? " (already present)" : ""));
         var item = new VideoItem
         {
             FileName = storedName,
             DisplayName = Path.GetFileName(sourcePath),
             Width = probe.Width,
             Height = probe.Height,
-            DurationSeconds = probe.DurationSeconds,
+            DurationSeconds = seconds,
         };
         return new MediaImportResult(item, alreadyThere);
     }

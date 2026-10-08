@@ -23,7 +23,7 @@ foreach (var c in clips)
 {
     var r = store.ImportAsync(c).GetAwaiter().GetResult();
     playlist.Items.Add(r.Item);
-    Console.WriteLine($"imported {r.Item.DisplayName} -> {r.Item.FileName}");
+    Console.WriteLine($"imported {r.Item.DisplayName} -> {r.Item.FileName}  length {r.Item.DurationSeconds:0.000} s");
 }
 
 var layout = new ScreenLayout

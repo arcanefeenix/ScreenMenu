@@ -325,6 +325,42 @@ public class VideoHostAndOutputTests : IDisposable
     });
 
     [Fact]
+    public void The_operators_transport_moves_between_videos_pauses_and_reports_where_it_is() => UiPump.Run(ui =>
+    {
+        using var host = Host(ui);
+        var v = VideoScreen("A", 0, 0, 168, 672, "solid-red.mp4", "solid-green.mp4", "solid-blue.mp4");
+        host.Sync(new[] { v }, Plan(v).Drawn);
+        var changes = 0;
+        host.StatusChanged += id => { if (id == v.Id) changes++; };
+        Assert.Equal(VideoPlayerState.Idle, host.StatusOf(v.Id)!.State);
+
+        host.SetRunning(true);
+        Assert.True(ui.Until(() => host.StatusOf(v.Id)!.State == VideoPlayerState.Playing));
+        var s = host.StatusOf(v.Id)!;
+        Assert.Equal((1, 3), (s.Position, s.PlayableCount));
+        Assert.Equal("solid-red.mp4", s.CurrentName);
+
+        host.Next(v.Id);
+        Assert.True(ui.Until(() => host.StatusOf(v.Id)!.Position == 2 && Colour(host.PictureFor(v.Id)!, 84, 336) == "green"));
+        host.TogglePause(v.Id);
+        Assert.Equal(VideoPlayerState.Paused, host.StatusOf(v.Id)!.State);
+        host.TogglePause(v.Id);
+        Assert.Equal(VideoPlayerState.Playing, host.StatusOf(v.Id)!.State);
+        host.Previous(v.Id);
+        Assert.True(ui.Until(() => host.StatusOf(v.Id)!.Position == 1 && Colour(host.PictureFor(v.Id)!, 84, 336) == "red"));
+
+        // a video that is switched off is not counted among the ones that will play
+        v.Playlist.Items[1].Enabled = false;
+        host.Sync(new[] { v }, Plan(v).Drawn);
+        Assert.Equal(2, host.StatusOf(v.Id)!.PlayableCount);
+        Assert.True(changes >= 4, $"only {changes} status notifications");
+
+        // controls for a screen with no player are harmless
+        host.Next(Guid.NewGuid()); host.Previous(Guid.NewGuid()); host.TogglePause(Guid.NewGuid());
+        Assert.Null(host.StatusOf(Guid.NewGuid()));
+    });
+
+    [Fact]
     public void A_menu_screen_and_a_video_screen_run_at_the_same_time_each_correct_and_independent() => UiPump.Run(ui =>
     {
         // the intended first use: Screen 1 = 168x672 menu, Screen 2 = 168x672 video, side by side on one canvas
