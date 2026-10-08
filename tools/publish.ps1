@@ -42,6 +42,10 @@ $required = 'LedMenu.App.exe', 'Fonts\Lato-Regular.ttf', 'Fonts\Lato-Bold.ttf', 
 foreach ($r in $required) {
     if (-not (Test-Path (Join-Path $out $r))) { throw "Package is missing $r" }
 }
+# no video files may ever ship: the package carries the program, the guide and the sample logo only
+$videos = @(Get-ChildItem $out -Recurse -File | Where-Object { $_.Extension -match '^\.(mp4|m4v|mov|wmv|avi|mkv|webm|mpg|mpeg|flv)$' })
+if ($videos.Count -gt 0) { throw ('Package contains video files: ' + (($videos | ForEach-Object { $_.FullName.Substring($out.Length + 1) }) -join ', ')) }
+
 if (-not (Get-ChildItem $out -Filter 'hostfxr.dll' -ErrorAction SilentlyContinue) -and
     -not (Get-ChildItem $out -Filter 'coreclr.dll' -ErrorAction SilentlyContinue)) {
     throw 'Package does not contain the .NET runtime (not self-contained?)'
